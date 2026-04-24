@@ -1,0 +1,14 @@
+# Flutter 웹: Netlify가 Linux에서 빌드 → build/web 배포
+# Site settings → Environment variables 에 API_BASE_URL 등 설정
+[build]
+  command = "bash scripts/netlify-build.sh"
+  publish = "build/web"
+
+[build.environment]
+  FLUTTER_BRANCH = "stable"
+
+# go_router 등 클라이언트 라우팅용 (직접 URL 입력 시 404 방지)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
