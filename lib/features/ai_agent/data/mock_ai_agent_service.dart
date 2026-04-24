@@ -67,28 +67,48 @@ class MockAiAgentService implements AiAgentService {
 
     List<String> steps;
     if (t.contains('과제') || t.contains('레포트') || t.contains('제출')) {
-      steps = const ['자료 찾기', '목차/핵심 정리', '첫 문단(또는 개요) 쓰기', '제출/업로드'];
+      steps = const [
+        '제출 요구사항 3개만 적기 (형식/분량/마감)',
+        '자료 3개 링크 저장 (검색어 포함)',
+        '목차 5개 적기 (한 줄씩)',
+        '첫 문단 5줄만 쓰기 (완벽 금지)',
+      ];
     } else if (t.contains('정리') || t.contains('청소')) {
-      steps = const ['타이머 5분 켜기', '눈에 보이는 10개만 정리', '쓰레기만 버리기', '사진으로 완료 기록'];
+      steps = const [
+        '타이머 5분 켜기',
+        '쓰레기 10개만 버리기',
+        '책상 위 “한 구역”만 비우기',
+        '완료 사진 1장 찍기',
+      ];
     } else if (t.contains('공부') || t.contains('시험') || t.contains('암기')) {
-      steps = const ['교재/노트 펼치기', '10분만 훑기', '핵심 3개만 적기', '5분 복습'];
+      steps = const [
+        '교재/노트 펼치고 오늘 범위 1줄 표시',
+        '10분 훑으며 모르는 것 3개 체크',
+        '핵심 3개를 내 말로 1줄씩 적기',
+        '문제 3개만 풀고 채점',
+      ];
     } else {
-      steps = const ['준비 2분', '핵심만 10분', '마무리 3분'];
+      steps = const [
+        '준비 60초 (물/자리/도구)',
+        '핵심 10분 (가장 중요한 1개만)',
+        '완료 표시 30초 (체크/짧은 메모)',
+      ];
     }
 
     if (soft) {
       // "시작 유도"에 맞게 첫 단계 더 작게
       steps = [
-        '준비 60초 (물/자리/도구)',
-        ...steps.take(2),
+        '준비 30초 (앉기/파일 열기)',
+        ...steps.take(3),
       ];
     }
 
+    final limited = steps.take(4).toList();
     return [
-      for (var i = 0; i < steps.length; i++)
+      for (var i = 0; i < limited.length; i++)
         TaskUnit(
           id: 'u-${t.hashCode}-$i',
-          title: steps[i],
+          title: limited[i],
         ),
     ];
   }

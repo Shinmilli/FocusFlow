@@ -13,6 +13,7 @@ class FocusFlowApp extends ConsumerWidget {
     ref.watch(notificationInitProvider);
     final router = ref.watch(goRouterProvider);
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       title: 'FocusFlow',
       theme: buildAppTheme(),
       routerConfig: router,

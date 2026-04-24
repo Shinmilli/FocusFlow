@@ -69,4 +69,11 @@ class AuthController extends Notifier<AuthState> {
     state = const AuthState.unauthenticated();
     _notifyRouter();
   }
+
+  Future<AuthUser> updateNickname(String nickname) async {
+    final user = await _repo.updateNickname(nickname);
+    state = AuthState.authenticated(user);
+    _notifyRouter();
+    return user;
+  }
 }

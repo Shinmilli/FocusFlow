@@ -34,6 +34,7 @@ async function ensureSchema() {
       id UUID PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      nickname TEXT NOT NULL DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
@@ -60,12 +61,27 @@ function authMiddleware(req, res, next) {
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
-app.use(
-  cors({
-    origin: CORS_ORIGIN ? CORS_ORIGIN.split(",").map((s) => s.trim()) : true,
-    credentials: true,
-  }),
-);
+
+const allowedOrigins = CORS_ORIGIN
+  ? CORS_ORIGIN.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  : [];
+
+const corsOptions = {
+  origin(origin, cb) {
+    // Non-browser clients (curl, server-to-server) often send no Origin.
+    if (!origin) return cb(null, true);
+    // If not configured, allow any origin (useful for demos).
+    if (allowedOrigins.length === 0) return cb(null, true);
+    return cb(null, allowedOrigins.includes(origin));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+// Preflight: be explicit so browsers don't fail OPTIONS.
+app.options("*", cors(corsOptions));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
@@ -139,14 +155,32 @@ app.post("/auth/login", async (req, res) => {
 });
 
 app.get("/auth/me", authMiddleware, async (req, res) => {
-  const { rows } = await pool.query("SELECT id, email, created_at FROM users WHERE id = $1", [
+  const { rows } = await pool.query("SELECT id, email, nickname, created_at FROM users WHERE id = $1", [
     req.user.id,
   ]);
   const row = rows[0];
   if (!row) {
     return res.status(401).json({ error: "User not found" });
   }
-  return res.json({ user: { id: row.id, email: row.email, createdAt: row.created_at } });
+  return res.json({
+    user: { id: row.id, email: row.email, nickname: row.nickname ?? "", createdAt: row.created_at },
+  });
+});
+
+app.patch("/user/profile", authMiddleware, async (req, res) => {
+  const nickname = String(req.body?.nickname ?? "").trim();
+  if (nickname.length > 24) {
+    return res.status(400).json({ error: "Nickname must be 24 characters or less" });
+  }
+  const { rows } = await pool.query(
+    "UPDATE users SET nickname = $2 WHERE id = $1 RETURNING id, email, nickname, created_at",
+    [req.user.id, nickname],
+  );
+  const row = rows[0];
+  if (!row) return res.status(401).json({ error: "User not found" });
+  return res.json({
+    user: { id: row.id, email: row.email, nickname: row.nickname ?? "", createdAt: row.created_at },
+  });
 });
 
 app.use((_req, res) => {

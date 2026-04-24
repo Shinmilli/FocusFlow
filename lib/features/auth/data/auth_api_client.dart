@@ -69,6 +69,31 @@ class AuthApiClient {
     return AuthUser.fromJson(userJson);
   }
 
+  Future<AuthUser> updateProfile({required String nickname}) async {
+    final uri = Uri.parse(apiUrl('/user/profile'));
+    final res = await _client.patch(
+      uri,
+      headers: _headers(jsonBody: true),
+      body: jsonEncode({'nickname': nickname}),
+    );
+    if (res.statusCode == 401) {
+      throw AuthApiException('세션이 만료되었어요. 다시 로그인해 주세요.');
+    }
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      String msg = '요청에 실패했어요';
+      try {
+        final map = jsonDecode(res.body) as Map<String, dynamic>;
+        final err = map['error'];
+        if (err is String && err.isNotEmpty) msg = err;
+      } catch (_) {}
+      throw AuthApiException(msg);
+    }
+    final map = jsonDecode(res.body) as Map<String, dynamic>;
+    final userJson = map['user'] as Map<String, dynamic>?;
+    if (userJson == null) throw AuthApiException('서버 응답 형식이 올바르지 않아요');
+    return AuthUser.fromJson(userJson);
+  }
+
   (String, AuthUser) _parseAuthResponse(http.Response res, {required Set<int> successCodes}) {
     if (!successCodes.contains(res.statusCode)) {
       String msg = '요청에 실패했어요';

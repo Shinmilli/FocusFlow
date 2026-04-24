@@ -11,9 +11,9 @@ import '../../gamification/presentation/gamification_providers.dart';
 import '../../planning/domain/task_block.dart';
 import '../../planning/domain/task_unit.dart';
 import '../../planning/presentation/planning_providers.dart';
-import '../../start_nudge/presentation/body_doubling_card.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import '../../auth/presentation/auth_providers.dart';
+import '../../goals/presentation/goals_providers.dart';
 import '../../notifications/presentation/notification_providers.dart';
 import 'widgets/daily_reminder_card.dart';
 import 'widgets/xp_strip.dart';
@@ -25,6 +25,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(playerProgressProvider);
     final ctx = ref.watch(userLifeContextProvider);
+    final lowEnergy = ctx.sleepHours < 6 || ctx.stressLevel >= 4;
+    final asyncGoals = ref.watch(goalsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -44,69 +46,102 @@ class HomeScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            '실행이 어려울 때를 위한 계획 이행 도우미',
-            style: Theme.of(context).textTheme.titleMedium,
+            '지금은 “다음 한 단계”만.',
+            style: Theme.of(context).textTheme.titleLarge,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            '오늘 계획 강도: ×${ctx.planIntensityMultiplier.toStringAsFixed(2)}',
+            '계획 강도 ×${ctx.planIntensityMultiplier.toStringAsFixed(2)} · 수면 ${ctx.sleepHours.toStringAsFixed(1)}h · 스트레스 ${ctx.stressLevel}/5',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          const SizedBox(height: 16),
-          XpStrip(progress: progress),
-          const SizedBox(height: 16),
-          const DailyReminderCard(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          if (lowEnergy)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  '컨디션이 낮은 날이에요. 오늘은 5분부터 시작해도 충분해요.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ),
+          if (lowEnergy) const SizedBox(height: 12),
           FilledButton.icon(
+            onPressed: () => context.push('/focus'),
+            icon: const Icon(Icons.timer_outlined),
+            label: Text(lowEnergy ? '딱 5분만 시작' : '집중 시작'),
+          ),
+          const SizedBox(height: 10),
+          FilledButton.tonalIcon(
             onPressed: () => context.push('/plan'),
             icon: const Icon(Icons.view_agenda_outlined),
             label: const Text('오늘 블록 (최대 3개)'),
           ),
-          const SizedBox(height: 8),
-          FilledButton.tonalIcon(
-            onPressed: () => context.push('/focus'),
-            icon: const Icon(Icons.timer_outlined),
-            label: const Text('집중 시작'),
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () => context.push('/context'),
-            icon: const Icon(Icons.health_and_safety_outlined),
-            label: const Text('수면·스트레스 등 상태'),
+            icon: const Icon(Icons.tune),
+            label: const Text('오늘 상태 조정'),
           ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/insights'),
-            icon: const Icon(Icons.query_stats_outlined),
-            label: const Text('기록/통계 보기'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/mcp'),
-            icon: const Icon(Icons.hub_outlined),
-            label: const Text('외부 도구 (MCP 데모)'),
-          ),
-          const SizedBox(height: 24),
-          const BodyDoublingCard(),
+          const SizedBox(height: 18),
+          XpStrip(progress: progress),
+          const SizedBox(height: 12),
+          const DailyReminderCard(),
           const SizedBox(height: 16),
-          Text('Agentic AI', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => _runAiCoach(context, ref),
-            icon: const Icon(Icons.auto_awesome),
-            label: const Text('오늘 계획 제안 받기'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => _runFailureExplain(context, ref),
-            icon: const Icon(Icons.insights_outlined),
-            label: const Text('실패 원인 설명 (데모)'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => showTestReminder(ref),
-            icon: const Icon(Icons.notifications_active_outlined),
-            label: const Text('리마인더 테스트(로컬 알림)'),
+          ExpansionTile(
+            title: const Text('더 보기'),
+            childrenPadding: const EdgeInsets.only(bottom: 8),
+            children: [
+              ListTile(
+                leading: const Icon(Icons.query_stats_outlined),
+                title: const Text('기록/통계'),
+                onTap: () => context.push('/insights'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('프로필'),
+                subtitle: const Text('로그인/닉네임/레벨'),
+                onTap: () => context.push('/profile'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.flag_outlined),
+                title: const Text('목표'),
+                subtitle: Text(
+                  asyncGoals.when(
+                    data: (g) => g.isEmpty ? '아직 없음' : '${g.length}개',
+                    loading: () => '불러오는 중…',
+                    error: (_, __) => '불러오기 실패',
+                  ),
+                ),
+                onTap: () => context.push('/goals'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.people_alt_outlined),
+                title: const Text('바디 더블링'),
+                subtitle: const Text('혼자 하기 어렵다면 같이 시작'),
+                onTap: () {},
+              ),
+              ListTile(
+                leading: const Icon(Icons.auto_awesome),
+                title: const Text('AI: 오늘 계획 제안'),
+                onTap: () => _runAiCoach(context, ref),
+              ),
+              ListTile(
+                leading: const Icon(Icons.insights_outlined),
+                title: const Text('AI: 실패 패턴 해석'),
+                onTap: () => _runFailureExplain(context, ref),
+              ),
+              ListTile(
+                leading: const Icon(Icons.hub_outlined),
+                title: const Text('외부 도구 (MCP 데모)'),
+                onTap: () => context.push('/mcp'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.notifications_active_outlined),
+                title: const Text('리마인더 테스트(로컬)'),
+                onTap: () => showTestReminder(ref),
+              ),
+            ],
           ),
         ],
       ),
@@ -117,11 +152,13 @@ class HomeScreen extends ConsumerWidget {
     final life = ref.read(userLifeContextProvider);
     final agent = ref.read(aiAgentServiceProvider);
     final repo = ref.read(planningRepositoryProvider);
+    final goals = await ref.read(goalsProvider.future);
     final dateKey = todayDateKey();
 
     final todayBlocks = await repo.loadTodayVisibleBlocks(dateKey);
     final backlog = await repo.loadBacklog();
     final userStated = <String>[
+      ...goals,
       ...todayBlocks.map((b) => b.title),
       ...backlog.map((b) => b.title),
     ].take(8).toList();

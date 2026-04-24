@@ -77,18 +77,19 @@ class OpenAiAgentService implements AiAgentService {
         'moodNote': context.moodNote,
       },
       'outputSpec': {
-        'steps': 'array of 3-6 short strings, each immediately startable in <=15 minutes',
+        'steps': 'array of 2-4 short strings, each immediately startable in <=15 minutes, concrete, with a clear done condition',
       },
       'rules': [
         'Prefer smaller first step if sleepHours < 6 or stressLevel >= 4.',
-        'Avoid vague steps like "do it" or "work".',
+        'Avoid vague steps like "해보기", "작업하기", "공부하기".',
+        'Each step must mention a concrete object/output (e.g., "목차 5개 적기", "자료 3개 링크 저장").',
         'Korean output.',
       ],
       'returnJson': {'steps': ['string']},
     });
 
     final obj = await _chatJson(system: sys, user: user);
-    final steps = (obj['steps'] as List?)?.whereType<String>().toList() ?? const [];
+    final steps = (obj['steps'] as List?)?.whereType<String>().take(4).toList() ?? const [];
     return [
       for (var i = 0; i < steps.length; i++)
         TaskUnit(id: 'llm-$i', title: steps[i]),

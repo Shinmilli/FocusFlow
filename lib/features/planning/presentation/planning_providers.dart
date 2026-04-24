@@ -20,6 +20,11 @@ final todayBlocksProvider = FutureProvider<List<TaskBlock>>((ref) async {
   return repo.loadTodayVisibleBlocks(todayDateKey());
 });
 
+final blocksForDateProvider = FutureProvider.family<List<TaskBlock>, String>((ref, dateKey) async {
+  final repo = ref.watch(planningRepositoryProvider);
+  return repo.loadTodayVisibleBlocks(dateKey);
+});
+
 final backlogBlocksProvider = FutureProvider<List<TaskBlock>>((ref) async {
   final repo = ref.watch(planningRepositoryProvider);
   return repo.loadBacklog();
@@ -28,4 +33,9 @@ final backlogBlocksProvider = FutureProvider<List<TaskBlock>>((ref) async {
 final canAddNewBlockProvider = FutureProvider<bool>((ref) async {
   final repo = ref.watch(planningRepositoryProvider);
   return repo.canAddNewBlock(todayDateKey());
+});
+
+final canAddNewBlockForDateProvider = FutureProvider.family<bool, String>((ref, dateKey) async {
+  final repo = ref.watch(planningRepositoryProvider);
+  return repo.canAddNewBlock(dateKey);
 });

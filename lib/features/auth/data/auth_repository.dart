@@ -47,4 +47,9 @@ class AuthRepository {
     await _storage.clearToken();
     _api.setToken(null);
   }
+
+  Future<AuthUser> updateNickname(String nickname) async {
+    final user = await _api.updateProfile(nickname: nickname);
+    return user;
+  }
 }

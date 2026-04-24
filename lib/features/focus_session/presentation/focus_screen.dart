@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/focus_flow_limits.dart';
 import '../../ai_agent/presentation/ai_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
+import '../../planning/presentation/planning_providers.dart';
+import '../../planning/domain/task_block.dart';
 import '../domain/focus_log_event.dart';
 import 'focus_log_providers.dart';
 import 'widgets/leave_hint_card.dart';
@@ -130,6 +132,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
 
   @override
   Widget build(BuildContext context) {
+    final asyncBlocks = ref.watch(todayBlocksProvider);
     final total = _quick
         ? FocusFlowLimits.quickStartMinutes * 60
         : 25 * 60;
@@ -162,6 +165,15 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
               LeaveHintCard(text: _leaveHint!),
             ],
             const Spacer(),
+            asyncBlocks.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (blocks) => _FocusChecklistCard(
+                blocks: blocks,
+                onToggle: (block, unitId, done) => _toggleUnit(block, unitId, done),
+              ),
+            ),
+            const SizedBox(height: 12),
             FilledButton(
               onPressed: () => _beginCountdownThenRun(quick: false),
               child: const Text('강제 시작 (3초 카운트다운)'),
@@ -209,5 +221,76 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     final m = sec ~/ 60;
     final s = sec % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _toggleUnit(TaskBlock block, String unitId, bool done) async {
+    final repo = ref.read(planningRepositoryProvider);
+    final next = block.units
+        .map((u) => u.id == unitId ? u.copyWith(isDone: done) : u)
+        .toList();
+
+    // 체크하면 완료 항목이 아래로 내려가게 정렬
+    next.sort((a, b) {
+      if (a.isDone == b.isDone) return 0;
+      return a.isDone ? 1 : -1;
+    });
+
+    await repo.updateBlock(block.copyWith(units: next));
+    ref.invalidate(todayBlocksProvider);
+    ref.invalidate(backlogBlocksProvider);
+    ref.invalidate(canAddNewBlockProvider);
+  }
+}
+
+class _FocusChecklistCard extends StatelessWidget {
+  const _FocusChecklistCard({
+    required this.blocks,
+    required this.onToggle,
+  });
+
+  final List<TaskBlock> blocks;
+  final Future<void> Function(TaskBlock block, String unitId, bool done) onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = blocks.firstWhere(
+      (b) => !b.isFullyComplete,
+      orElse: () => blocks.isEmpty ? TaskBlock(id: '', title: '', units: []) : blocks.first,
+    );
+    if (current.id.isEmpty || current.units.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            '오늘 블록이 없거나 단계가 없어요. “오늘 블록”에서 추가/쪼개기를 해보세요.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      );
+    }
+
+    final view = current.units.take(6).toList();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('지금 할 일', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 6),
+            Text(current.title, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 10),
+            for (final u in view)
+              CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                value: u.isDone,
+                title: Text(u.title),
+                onChanged: (v) => onToggle(current, u.id, v ?? false),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
