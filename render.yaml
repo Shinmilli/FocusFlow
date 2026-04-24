@@ -1,0 +1,20 @@
+# Render Blueprint: Web Service + link Postgres in dashboard (set DATABASE_URL on this service).
+services:
+  - type: web
+    name: focusflow-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES
+        value: 7d
+      # Set CORS_ORIGIN to your Flutter web origin(s), comma-separated, e.g. https://your-app.web.app
+      - key: CORS_ORIGIN
+        sync: false
