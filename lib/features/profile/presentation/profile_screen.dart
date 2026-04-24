@@ -168,7 +168,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         onTap: () => context.push('/focus'),
                       ),
                       _FeatureIcon(
-                        icon: Icons.tune,
+                        icon: Icons.health_and_safety_outlined,
                         label: '상태',
                         onTap: () => context.push('/context'),
                       ),

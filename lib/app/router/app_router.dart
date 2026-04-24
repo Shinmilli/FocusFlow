@@ -55,7 +55,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       case AuthPhase.authenticated:
         // After auth, onboarding gate (only once).
         final onboard = ref.read(onboardingDoneProvider).valueOrNull ?? false;
-        if (!onboard && state.matchedLocation != '/onboarding') {
+        // Allow /context during onboarding ("상태 조정하기") before marking done.
+        if (!onboard &&
+            state.matchedLocation != '/onboarding' &&
+            state.matchedLocation != '/context') {
           return '/onboarding';
         }
         // Daily context gate: first entry each day must pass /context -> save.

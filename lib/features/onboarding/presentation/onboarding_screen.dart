@@ -26,6 +26,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         phoneHeavyUse: ctx.phoneHeavyUse,
         onDone: () async {
           await ref.read(onboardingPrefsProvider).setDone(true);
+          ref.invalidate(onboardingDoneProvider);
+          await ref.read(onboardingDoneProvider.future);
           if (!context.mounted) return;
           context.go('/');
         },
@@ -137,7 +139,7 @@ class _QuickCheck extends StatelessWidget {
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: onAdjustContext,
-                  icon: const Icon(Icons.tune),
+                  icon: const Icon(Icons.health_and_safety_outlined),
                   label: const Text('상태 조정하기'),
                 ),
               ],

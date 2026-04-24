@@ -6,9 +6,10 @@ import '../../../core/config/api_config.dart';
 import '../domain/auth_user.dart';
 
 class AuthApiException implements Exception {
-  AuthApiException(this.message);
+  AuthApiException(this.message, {this.statusCode});
 
   final String message;
+  final int? statusCode;
 
   @override
   String toString() => message;
@@ -28,6 +29,13 @@ class AuthApiClient {
         if (jsonBody) 'Content-Type': 'application/json',
         if (_token != null && _token!.isNotEmpty) 'Authorization': 'Bearer $_token',
       };
+
+  /// Cold spin / proxy errors (502) often omit CORS headers; the browser surfaces that as a failed fetch.
+  Future<bool> pingHealth() async {
+    final uri = Uri.parse(apiUrl('/health'));
+    final res = await _client.get(uri);
+    return res.statusCode == 200;
+  }
 
   Future<(String token, AuthUser user)> register({
     required String email,
@@ -59,10 +67,10 @@ class AuthApiClient {
     final uri = Uri.parse(apiUrl('/auth/me'));
     final res = await _client.get(uri, headers: _headers());
     if (res.statusCode == 401) {
-      throw AuthApiException('세션이 만료되었어요. 다시 로그인해 주세요.');
+      throw AuthApiException('세션이 만료되었어요. 다시 로그인해 주세요.', statusCode: 401);
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw AuthApiException('서버 오류 (${res.statusCode})');
+      throw AuthApiException('서버 오류 (${res.statusCode})', statusCode: res.statusCode);
     }
     final map = jsonDecode(res.body) as Map<String, dynamic>;
     final userJson = map['user'] as Map<String, dynamic>;
@@ -77,7 +85,7 @@ class AuthApiClient {
       body: jsonEncode({'nickname': nickname}),
     );
     if (res.statusCode == 401) {
-      throw AuthApiException('세션이 만료되었어요. 다시 로그인해 주세요.');
+      throw AuthApiException('세션이 만료되었어요. 다시 로그인해 주세요.', statusCode: 401);
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       String msg = '요청에 실패했어요';
@@ -86,7 +94,7 @@ class AuthApiClient {
         final err = map['error'];
         if (err is String && err.isNotEmpty) msg = err;
       } catch (_) {}
-      throw AuthApiException(msg);
+      throw AuthApiException(msg, statusCode: res.statusCode);
     }
     final map = jsonDecode(res.body) as Map<String, dynamic>;
     final userJson = map['user'] as Map<String, dynamic>?;
@@ -102,7 +110,7 @@ class AuthApiClient {
         final err = map['error'];
         if (err is String && err.isNotEmpty) msg = err;
       } catch (_) {}
-      throw AuthApiException(msg);
+      throw AuthApiException(msg, statusCode: res.statusCode);
     }
     final map = jsonDecode(res.body) as Map<String, dynamic>;
     final token = map['accessToken'] as String?;

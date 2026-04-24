@@ -62,9 +62,15 @@ function authMiddleware(req, res, next) {
 const app = express();
 app.use(express.json({ limit: "256kb" }));
 
+function normalizeOrigin(o) {
+  return String(o || "")
+    .trim()
+    .replace(/\/+$/, "");
+}
+
 const allowedOrigins = CORS_ORIGIN
   ? CORS_ORIGIN.split(",")
-      .map((s) => s.trim())
+      .map((s) => normalizeOrigin(s))
       .filter(Boolean)
   : [];
 
@@ -74,7 +80,8 @@ const corsOptions = {
     if (!origin) return cb(null, true);
     // If not configured, allow any origin (useful for demos).
     if (allowedOrigins.length === 0) return cb(null, true);
-    return cb(null, allowedOrigins.includes(origin));
+    const o = normalizeOrigin(origin);
+    return cb(null, allowedOrigins.includes(o));
   },
   credentials: true,
 };

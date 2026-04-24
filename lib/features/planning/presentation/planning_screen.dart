@@ -298,7 +298,7 @@ class PlanningScreen extends ConsumerWidget {
                   Row(
                     children: [
                       _BottomAction(
-                        icon: Icons.tune,
+                        icon: Icons.health_and_safety_outlined,
                         label: '상태',
                         onTap: () => context.push('/context'),
                       ),

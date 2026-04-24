@@ -80,7 +80,7 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () => context.push('/context'),
-            icon: const Icon(Icons.tune),
+            icon: const Icon(Icons.health_and_safety_outlined),
             label: const Text('오늘 상태 조정'),
           ),
           const SizedBox(height: 18),
