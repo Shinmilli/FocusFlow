@@ -229,12 +229,6 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         .map((u) => u.id == unitId ? u.copyWith(isDone: done) : u)
         .toList();
 
-    // 체크하면 완료 항목이 아래로 내려가게 정렬
-    next.sort((a, b) {
-      if (a.isDone == b.isDone) return 0;
-      return a.isDone ? 1 : -1;
-    });
-
     await repo.updateBlock(block.copyWith(units: next));
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(backlogBlocksProvider);
