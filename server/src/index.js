@@ -11,7 +11,8 @@ const { Pool } = pg;
 const PORT = Number(process.env.PORT) || 8787;
 const DATABASE_URL = process.env.DATABASE_URL;
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES = process.env.JWT_EXPIRES || "7d";
+// Long-lived until explicit logout; override with JWT_EXPIRES (e.g. "90d") if you prefer shorter tokens.
+const JWT_EXPIRES = process.env.JWT_EXPIRES || "365d";
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "";
 
 if (!DATABASE_URL) {

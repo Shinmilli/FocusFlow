@@ -16,4 +16,10 @@ class AuthUser {
       nickname: (json['nickname'] as String?) ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'email': email,
+        'nickname': nickname,
+      };
 }

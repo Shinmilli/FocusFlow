@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import '../../../core/config/api_config.dart';
@@ -54,14 +56,28 @@ class AuthRepository {
     if (!isApiConfigured) return null;
     final token = await _storage.readToken();
     if (token == null || token.isEmpty) return null;
+
+    AuthUser? cachedUser;
+    final cachedJson = await _storage.readCachedUserJson();
+    if (cachedJson != null && cachedJson.isNotEmpty) {
+      try {
+        cachedUser = AuthUser.fromJson(jsonDecode(cachedJson) as Map<String, dynamic>);
+      } catch (_) {}
+    }
+
     _api.setToken(token);
     try {
-      return await _withColdStartRetry(_api, () => _api.me());
+      final user = await _withColdStartRetry(_api, () => _api.me());
+      await _storage.writeCachedUserJson(jsonEncode(user.toJson()));
+      return user;
     } on AuthApiException catch (e) {
-      // Only drop the session when the server rejected the token.
       if (e.statusCode == 401) {
         await _storage.clearToken();
         _api.setToken(null);
+        return null;
+      }
+      if (cachedUser != null) {
+        return cachedUser;
       }
       return null;
     }
@@ -73,6 +89,7 @@ class AuthRepository {
       () => _api.login(email: email, password: password),
     );
     await _storage.writeToken(token);
+    await _storage.writeCachedUserJson(jsonEncode(user.toJson()));
     _api.setToken(token);
     return user;
   }
@@ -83,6 +100,7 @@ class AuthRepository {
       () => _api.register(email: email, password: password),
     );
     await _storage.writeToken(token);
+    await _storage.writeCachedUserJson(jsonEncode(user.toJson()));
     _api.setToken(token);
     return user;
   }
@@ -94,6 +112,7 @@ class AuthRepository {
 
   Future<AuthUser> updateNickname(String nickname) async {
     final user = await _api.updateProfile(nickname: nickname);
+    await _storage.writeCachedUserJson(jsonEncode(user.toJson()));
     return user;
   }
 }
