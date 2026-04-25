@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pg from "pg";
 
+import { geminiGenerateJson, geminiGenerateText } from "./gemini.js";
+
 const { Pool } = pg;
 
 const PORT = Number(process.env.PORT) || 8787;
@@ -14,6 +16,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Long-lived until explicit logout; override with JWT_EXPIRES (e.g. "90d") if you prefer shorter tokens.
 const JWT_EXPIRES = process.env.JWT_EXPIRES || "365d";
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "";
+/** Google AI Studio API key — set on Render only, never in Flutter web. */
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 if (!DATABASE_URL) {
   console.error("Missing DATABASE_URL (add Render PostgreSQL and link to this service).");
@@ -189,6 +194,57 @@ app.patch("/user/profile", authMiddleware, async (req, res) => {
   return res.json({
     user: { id: row.id, email: row.email, nickname: row.nickname ?? "", createdAt: row.created_at },
   });
+});
+
+// --- Gemini (Google AI Studio) proxy: key stays on Render; app sends JWT only. ---
+app.get("/ai/gemini/status", (_req, res) => {
+  res.json({ configured: Boolean(GEMINI_API_KEY), model: GEMINI_MODEL });
+});
+
+app.post("/ai/gemini-json", authMiddleware, async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(503).json({ error: "GEMINI_API_KEY is not set on this server" });
+  }
+  const system = String(req.body?.system ?? "");
+  const user = String(req.body?.user ?? "");
+  if (!system.trim() || !user.trim()) {
+    return res.status(400).json({ error: "body.system and body.user (non-empty strings) are required" });
+  }
+  try {
+    const result = await geminiGenerateJson({
+      apiKey: GEMINI_API_KEY,
+      model: GEMINI_MODEL,
+      system,
+      user,
+    });
+    return res.json({ result });
+  } catch (e) {
+    console.error("Gemini JSON error:", e);
+    return res.status(502).json({ error: String(e?.message || e) });
+  }
+});
+
+app.post("/ai/gemini-text", authMiddleware, async (req, res) => {
+  if (!GEMINI_API_KEY) {
+    return res.status(503).json({ error: "GEMINI_API_KEY is not set on this server" });
+  }
+  const system = String(req.body?.system ?? "");
+  const user = String(req.body?.user ?? "");
+  if (!system.trim() || !user.trim()) {
+    return res.status(400).json({ error: "body.system and body.user (non-empty strings) are required" });
+  }
+  try {
+    const text = await geminiGenerateText({
+      apiKey: GEMINI_API_KEY,
+      model: GEMINI_MODEL,
+      system,
+      user,
+    });
+    return res.json({ text });
+  } catch (e) {
+    console.error("Gemini text error:", e);
+    return res.status(502).json({ error: String(e?.message || e) });
+  }
 });
 
 app.use((_req, res) => {

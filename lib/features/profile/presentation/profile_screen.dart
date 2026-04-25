@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/config/api_config.dart';
+import '../../ai_agent/presentation/ai_assistant_hub.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../auth/presentation/auth_providers.dart';
 import '../../coach/data/coach_nudge_prefs.dart';
-import '../../coach/presentation/coach_nudge_controller.dart';
 import '../../coach/presentation/coach_nudge_providers.dart';
 import '../../gamification/presentation/gamification_providers.dart';
 
@@ -126,8 +126,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       _FeatureIcon(
                         icon: Icons.auto_awesome,
-                        label: 'AI 계획',
-                        onTap: () => showCoachNudgeIfAny(context: context, ref: ref),
+                        label: 'AI 도우미',
+                        onTap: () => showAiAssistantHub(context, ref),
                       ),
                       _FeatureIcon(
                         icon: Icons.people_alt_outlined,
