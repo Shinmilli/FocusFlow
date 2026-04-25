@@ -44,6 +44,10 @@ async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  // Existing DBs from before "nickname" — CREATE TABLE IF NOT EXISTS does not add columns.
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname TEXT NOT NULL DEFAULT '';
+  `);
 }
 
 function signToken(userId, email) {
