@@ -154,7 +154,7 @@ Future<void> _showAiTodayPlanSheet({
                 Navigator.pop(c);
                 context.push('/plan/select');
               },
-              child: const Text('오늘 3개 고르러 가기'),
+              child: const Text('오늘 선택하러 가기'),
             ),
             TextButton(
               onPressed: () => Navigator.pop(c),

@@ -10,6 +10,7 @@ class TodayPickTile extends StatelessWidget {
     required this.disabled,
     required this.maxReached,
     required this.onChanged,
+    this.onDelete,
   });
 
   final TaskBlock block;
@@ -17,6 +18,7 @@ class TodayPickTile extends StatelessWidget {
   final bool disabled;
   final bool maxReached;
   final ValueChanged<bool> onChanged;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -25,9 +27,25 @@ class TodayPickTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       child: CheckboxListTile(
         value: selected,
+        controlAffinity: ListTileControlAffinity.leading,
         onChanged: effectiveDisabled ? null : (v) => onChanged(v ?? false),
         title: Text(block.title),
         subtitle: Text('단계 ${block.units.length}개'),
+        secondary: onDelete == null
+            ? null
+            : PopupMenuButton<String>(
+                tooltip: '더보기',
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) {
+                  if (value == 'delete') onDelete?.call();
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Text('삭제'),
+                  ),
+                ],
+              ),
       ),
     );
   }

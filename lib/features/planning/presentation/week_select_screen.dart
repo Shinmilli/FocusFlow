@@ -83,7 +83,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
                     padding: const EdgeInsets.all(16),
                     children: [
                       Text(
-                        '일주일 단위로 “오늘 3개”를 조정해요.',
+                        '일주일 단위로 “오늘 선택”을 조정해요.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 8),
@@ -131,8 +131,9 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
                           TodayPickTile(
                             block: b.copyWith(isSelectedForToday: isToday),
                             selected: selected.contains(b.id),
-                            disabled: !canChangeSelection && !selected.contains(b.id),
-                            maxReached: selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
+                            disabled: false,
+                            maxReached: canChangeSelection &&
+                                selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
                             onChanged: (next) => _onPickChanged(
                               context,
                               ref,
@@ -159,8 +160,10 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
                         TodayPickTile(
                           block: b,
                           selected: selected.contains(b.id),
-                          disabled: !canChangeSelection && !selected.contains(b.id),
-                          maxReached: selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
+                          disabled: false,
+                          maxReached: canChangeSelection &&
+                              selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
+                          onDelete: () => _confirmDeleteBacklog(context, ref, b),
                           onChanged: (next) => _onPickChanged(
                             context,
                             ref,
@@ -210,8 +213,17 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     final nextSet = {...selected};
 
     if (!canChangeSelection && next && !selected.contains(b.id)) {
+      nextSet
+        ..clear()
+        ..add(b.id);
+      await repo.setSelectedForToday(dateKey, nextSet.toList());
+      ref.invalidate(todayBlocksProvider);
+      ref.invalidate(blocksForDateProvider(dateKey));
+      ref.invalidate(backlogBlocksProvider);
+      ref.invalidate(canAddNewBlockProvider);
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('현재 블록이 완료될 때까지는 다음 일을 추가하지 않아요.')),
+        const SnackBar(content: Text('선택한 백로그로 오늘 할 일을 교체했어요.')),
       );
       return;
     }
@@ -237,6 +249,37 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     ref.invalidate(blocksForDateProvider(dateKey));
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
+  }
+
+  Future<void> _confirmDeleteBacklog(BuildContext context, WidgetRef ref, TaskBlock block) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('백로그 삭제'),
+        content: Text('`${block.title}` 블록을 삭제할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+    await ref.read(planningRepositoryProvider).deleteBlock(block.id);
+    ref.invalidate(todayBlocksProvider);
+    ref.invalidate(blocksForDateProvider(_dateKey(_selectedDay)));
+    ref.invalidate(backlogBlocksProvider);
+    ref.invalidate(canAddNewBlockProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('백로그 블록을 삭제했어요.')),
+    );
   }
 }
 

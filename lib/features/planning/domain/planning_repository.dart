@@ -17,6 +17,9 @@ abstract class PlanningRepository {
   /// 서브태스크 갱신(완료 체크 등).
   Future<void> updateBlock(TaskBlock block);
 
+  /// 블록 삭제(오늘/백로그 목록에서 모두 제거).
+  Future<void> deleteBlock(String blockId);
+
   /// 새 블록 추가 가능 여부: 현재 진행 중 블록이 모두 완료되었을 때만 true 권장.
   Future<bool> canAddNewBlock(String dateKey);
 }

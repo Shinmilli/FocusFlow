@@ -79,6 +79,17 @@ class InMemoryPlanningRepository implements PlanningRepository {
   }
 
   @override
+  Future<void> deleteBlock(String blockId) async {
+    _all.removeWhere((b) => b.id == blockId);
+    for (final key in _selectedByDate.keys.toList()) {
+      final set = _selectedByDate[key];
+      if (set == null) continue;
+      set.remove(blockId);
+      if (set.isEmpty) _selectedByDate.remove(key);
+    }
+  }
+
+  @override
   Future<bool> canAddNewBlock(String dateKey) async {
     final visible = await loadTodayVisibleBlocks(dateKey);
     if (visible.isEmpty) return true;

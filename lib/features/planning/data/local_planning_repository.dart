@@ -144,6 +144,24 @@ class LocalPlanningRepository implements PlanningRepository {
   }
 
   @override
+  Future<void> deleteBlock(String blockId) async {
+    final all = await _loadAll();
+    all.removeWhere((b) => b.id == blockId);
+    await _saveAll(all);
+
+    final selectedByDate = await _loadSelectedByDate();
+    for (final key in selectedByDate.keys.toList()) {
+      final set = selectedByDate[key];
+      if (set == null) continue;
+      set.remove(blockId);
+      if (set.isEmpty) {
+        selectedByDate.remove(key);
+      }
+    }
+    await _saveSelectedByDate(selectedByDate);
+  }
+
+  @override
   Future<bool> canAddNewBlock(String dateKey) async {
     final visible = await loadTodayVisibleBlocks(dateKey);
     if (visible.isEmpty) return true;

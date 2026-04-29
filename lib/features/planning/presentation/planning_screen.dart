@@ -119,12 +119,12 @@ class PlanningScreen extends ConsumerWidget {
                       children: [
                         Text('오늘 블록이 비어 있어요', style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 8),
-                        const Text('과부하를 막기 위해 오늘은 최대 3개만 선택해요.'),
+                        const Text('과부하를 막기 위해 오늘은 최대 3개까지 선택해요.'),
                         const SizedBox(height: 12),
                         FilledButton.icon(
                           onPressed: () => context.push('/plan/select'),
                           icon: const Icon(Icons.checklist_rtl_outlined),
-                          label: const Text('오늘 3개 고르기'),
+                          label: const Text('오늘 선택'),
                         ),
                         const SizedBox(height: 8),
                         OutlinedButton.icon(

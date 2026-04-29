@@ -27,7 +27,7 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('오늘 3개 선택'),
+        title: const Text('오늘 선택'),
       ),
       body: asyncCanAdd.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -73,8 +73,8 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                           TodayPickTile(
                             block: b.copyWith(isSelectedForToday: true),
                             selected: selected.contains(b.id),
-                            disabled: !canAdd && !selected.contains(b.id),
-                            maxReached:
+                            disabled: false,
+                            maxReached: canAdd &&
                                 selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
                             onChanged: (next) => _onPickChanged(
                               context,
@@ -106,9 +106,10 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                         TodayPickTile(
                           block: b,
                           selected: selected.contains(b.id),
-                          disabled: !canAdd && !selected.contains(b.id),
-                          maxReached:
+                          disabled: false,
+                          maxReached: canAdd &&
                               selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
+                          onDelete: () => _confirmDeleteBacklog(context, ref, b),
                           onChanged: (next) => _onPickChanged(
                             context,
                             ref,
@@ -164,10 +165,19 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     final nextSet = {...selected};
 
     if (!canAdd && next && !selected.contains(b.id)) {
+      nextSet
+        ..clear()
+        ..add(b.id);
+      await repo.setSelectedForToday(
+        todayDateKey(),
+        nextSet.toList(),
+      );
+      ref.invalidate(todayBlocksProvider);
+      ref.invalidate(backlogBlocksProvider);
+      ref.invalidate(canAddNewBlockProvider);
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('현재 블록이 완료될 때까지는 다음 일을 추가하지 않아요.'),
-        ),
+        const SnackBar(content: Text('선택한 백로그로 오늘 할 일을 교체했어요.')),
       );
       return;
     }
@@ -195,5 +205,35 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
+  }
+
+  Future<void> _confirmDeleteBacklog(BuildContext context, WidgetRef ref, TaskBlock block) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('백로그 삭제'),
+        content: Text('`${block.title}` 블록을 삭제할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+    await ref.read(planningRepositoryProvider).deleteBlock(block.id);
+    ref.invalidate(todayBlocksProvider);
+    ref.invalidate(backlogBlocksProvider);
+    ref.invalidate(canAddNewBlockProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('백로그 블록을 삭제했어요.')),
+    );
   }
 }
