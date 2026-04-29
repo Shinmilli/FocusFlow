@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 
 ThemeData buildAppTheme() {
-  const seed = Color(0xFF2D6A4F);
+  const primary = Color(0xFF3D8EF9);
+  final scheme = ColorScheme.fromSeed(
+    seedColor: primary,
+    brightness: Brightness.light,
+  ).copyWith(primary: primary);
   return ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: seed,
-      brightness: Brightness.light,
+    colorScheme: scheme,
+    appBarTheme: AppBarTheme(
+      centerTitle: true,
+      backgroundColor: scheme.surface,
+      foregroundColor: scheme.onSurface,
+      elevation: 0,
+      scrolledUnderElevation: 1,
     ),
-    appBarTheme: const AppBarTheme(centerTitle: true),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: primary,
+      foregroundColor: Colors.white,
+      elevation: 6,
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white),
+    ),
   );
 }

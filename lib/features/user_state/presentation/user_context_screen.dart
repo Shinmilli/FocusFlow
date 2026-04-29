@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../domain/user_life_context.dart';
 import 'daily_context_gate_providers.dart';
@@ -95,9 +96,8 @@ class _UserContextScreenState extends ConsumerState<UserContextScreen> {
                   );
               ref.read(dailyContextGatePrefsProvider).markDoneForToday();
               ref.invalidate(dailyContextDoneProvider);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('저장했어요')),
-              );
+              if (!context.mounted) return;
+              context.go('/plan');
             },
             child: const Text('저장'),
           ),

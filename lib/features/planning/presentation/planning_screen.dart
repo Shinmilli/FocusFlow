@@ -21,7 +21,6 @@ class PlanningScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncBlocks = ref.watch(todayBlocksProvider);
-    final asyncCanAdd = ref.watch(canAddNewBlockProvider);
     final progress = ref.watch(playerProgressProvider);
     final ctx = ref.watch(userLifeContextProvider);
     final lowEnergy = ctx.sleepHours < 6 || ctx.stressLevel >= 4;
@@ -274,43 +273,45 @@ class PlanningScreen extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
           child: Card(
+            clipBehavior: Clip.none,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  asyncCanAdd.when(
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                    data: (canAdd) {
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-                        child: Text(
-                          canAdd
-                              ? '새 블록 추가 가능'
-                              : '진행 중 블록이 있어 선택이 제한돼요',
-                          style: Theme.of(context).textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    },
-                  ),
-                  Row(
+              padding: const EdgeInsets.fromLTRB(4, 10, 4, 10),
+              child: SizedBox(
+                height: 72,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      _BottomAction(
-                        icon: Icons.health_and_safety_outlined,
-                        label: '상태',
-                        onTap: () => context.push('/context'),
-                      ),
-                      _BottomAction(
-                        icon: Icons.checklist_rtl_outlined,
-                        label: '오늘선택',
-                        onTap: () => context.push('/plan/select'),
-                      ),
                       _BottomAction(
                         icon: Icons.date_range_outlined,
                         label: '주간',
                         onTap: () => context.push('/plan/week'),
+                      ),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Transform.translate(
+                            offset: const Offset(0, -20),
+                            child: Material(
+                              elevation: 6,
+                              shadowColor: Colors.black26,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              color: Theme.of(context).colorScheme.primary,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(18),
+                                onTap: () => context.push('/plan/select'),
+                                child: const SizedBox(
+                                  width: 56,
+                                  height: 56,
+                                  child: Icon(Icons.add, color: Colors.white, size: 28),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                       _BottomAction(
                         icon: Icons.person_outline,
@@ -319,7 +320,7 @@ class PlanningScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
