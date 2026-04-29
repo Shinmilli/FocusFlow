@@ -24,10 +24,10 @@ class TaskUnit {
     );
   }
 
-  TaskUnit copyWith({bool? isDone}) {
+  TaskUnit copyWith({String? title, bool? isDone}) {
     return TaskUnit(
       id: id,
-      title: title,
+      title: title ?? this.title,
       isDone: isDone ?? this.isDone,
     );
   }

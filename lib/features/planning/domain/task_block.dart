@@ -7,12 +7,14 @@ class TaskBlock {
     required this.title,
     required this.units,
     this.isSelectedForToday = false,
+    this.isCurrentTask = false,
   });
 
   final String id;
   final String title;
   final List<TaskUnit> units;
   final bool isSelectedForToday;
+  final bool isCurrentTask;
 
   bool get isFullyComplete => units.isNotEmpty && units.every((u) => u.isDone);
 
@@ -21,6 +23,7 @@ class TaskBlock {
         'title': title,
         'units': units.map((u) => u.toJson()).toList(),
         'isSelectedForToday': isSelectedForToday,
+        'isCurrentTask': isCurrentTask,
       };
 
   static TaskBlock fromJson(Map<String, Object?> json) {
@@ -33,6 +36,7 @@ class TaskBlock {
           .map((m) => TaskUnit.fromJson(m.cast<String, Object?>()))
           .toList(),
       isSelectedForToday: (json['isSelectedForToday'] as bool?) ?? false,
+      isCurrentTask: (json['isCurrentTask'] as bool?) ?? false,
     );
   }
 
@@ -40,12 +44,14 @@ class TaskBlock {
     String? title,
     List<TaskUnit>? units,
     bool? isSelectedForToday,
+    bool? isCurrentTask,
   }) {
     return TaskBlock(
       id: id,
       title: title ?? this.title,
       units: units ?? this.units,
       isSelectedForToday: isSelectedForToday ?? this.isSelectedForToday,
+      isCurrentTask: isCurrentTask ?? this.isCurrentTask,
     );
   }
 }

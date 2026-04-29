@@ -115,8 +115,13 @@ class LocalPlanningRepository implements PlanningRepository {
     await _saveSelectedByDate(selectedByDate);
 
     final all = await _loadAll();
+    final selectedSet = blockIds.toSet();
     final updated = [
-      for (final b in all) b.copyWith(isSelectedForToday: blockIds.contains(b.id)),
+      for (final b in all)
+        b.copyWith(
+          isSelectedForToday: selectedSet.contains(b.id),
+          isCurrentTask: selectedSet.contains(b.id) ? b.isCurrentTask : false,
+        ),
     ];
     await _saveAll(updated);
   }
@@ -152,6 +157,18 @@ class LocalPlanningRepository implements PlanningRepository {
       }
     }
     await _saveSelectedByDate(selectedByDate);
+  }
+
+  @override
+  Future<void> setCurrentTask(String? blockId) async {
+    final all = await _loadAll();
+    final updated = [
+      for (final b in all)
+        b.copyWith(
+          isCurrentTask: blockId != null && b.id == blockId,
+        ),
+    ];
+    await _saveAll(updated);
   }
 
   @override

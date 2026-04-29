@@ -20,6 +20,9 @@ abstract class PlanningRepository {
   /// 블록 삭제(오늘/백로그 목록에서 모두 제거).
   Future<void> deleteBlock(String blockId);
 
+  /// 오늘 작업 중 "현재 작업"을 1개만 지정.
+  Future<void> setCurrentTask(String? blockId);
+
   /// 새 블록 추가 가능 여부: 현재 진행 중 블록이 모두 완료되었을 때만 true 권장.
   Future<bool> canAddNewBlock(String dateKey);
 }

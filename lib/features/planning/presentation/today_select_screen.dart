@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../domain/task_block.dart';
+import '../domain/task_unit.dart';
 import 'planning_providers.dart';
 import 'widgets/today_pick_tile.dart';
 import 'widgets/today_select_header.dart';
@@ -94,6 +96,7 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                           selected: selected.contains(b.id),
                           disabled: false,
                           maxReached: false,
+                          onEditChecklist: () => _editBacklogChecklist(context, ref, b),
                           onDelete: () => _confirmDeleteBacklog(context, ref, b),
                           onChanged: (next) => _onPickChanged(
                             context,
@@ -187,6 +190,122 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('백로그 블록을 삭제했어요.')),
+    );
+  }
+
+  Future<void> _editBacklogChecklist(BuildContext context, WidgetRef ref, TaskBlock block) async {
+    final controllers = block.units
+        .take(4)
+        .map((u) => TextEditingController(text: u.title))
+        .toList();
+    if (controllers.isEmpty) {
+      controllers.add(TextEditingController(text: '준비 60초'));
+    }
+    final uuid = const Uuid();
+    final shouldSave = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                8,
+                16,
+                MediaQuery.of(sheetContext).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('체크리스트 수정', style: Theme.of(sheetContext).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  for (var i = 0; i < controllers.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: controllers[i],
+                              decoration: InputDecoration(
+                                labelText: '단계 ${i + 1}',
+                                border: const OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: controllers.length <= 1
+                                ? null
+                                : () {
+                                    setSheetState(() {
+                                      controllers[i].dispose();
+                                      controllers.removeAt(i);
+                                    });
+                                  },
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: controllers.length >= 4
+                          ? null
+                          : () {
+                              setSheetState(() {
+                                controllers.add(TextEditingController());
+                              });
+                            },
+                      icon: const Icon(Icons.add),
+                      label: const Text('단계 추가'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(sheetContext, true),
+                    child: const Text('저장'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldSave != true) {
+      for (final c in controllers) {
+        c.dispose();
+      }
+      return;
+    }
+
+    final raw = controllers.map((c) => c.text.trim()).where((s) => s.isNotEmpty).toList();
+    for (final c in controllers) {
+      c.dispose();
+    }
+    if (raw.isEmpty) return;
+
+    final nextUnits = <TaskUnit>[];
+    for (var i = 0; i < raw.length && i < 4; i++) {
+      if (i < block.units.length) {
+        nextUnits.add(block.units[i].copyWith(title: raw[i]));
+      } else {
+        nextUnits.add(TaskUnit(id: uuid.v4(), title: raw[i]));
+      }
+    }
+    await ref.read(planningRepositoryProvider).updateBlock(block.copyWith(units: nextUnits));
+    ref.invalidate(todayBlocksProvider);
+    ref.invalidate(backlogBlocksProvider);
+    ref.invalidate(canAddNewBlockProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('체크리스트를 수정했어요.')),
     );
   }
 }
