@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
 class TimeFlowRing extends StatelessWidget {
-  const TimeFlowRing({super.key, required this.progress});
+  const TimeFlowRing({
+    super.key,
+    required this.progress,
+    required this.centerLabel,
+  });
 
   final double progress;
+  final String centerLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +22,7 @@ class TimeFlowRing extends StatelessWidget {
             painter: _RingPainter(value, Theme.of(context).colorScheme.primary),
             child: Center(
               child: Text(
-                '${(value * 100).round()}%',
+                centerLabel,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),

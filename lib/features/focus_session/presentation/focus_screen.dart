@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/constants/focus_flow_limits.dart';
 import '../../ai_agent/presentation/ai_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import '../../planning/presentation/planning_providers.dart';
@@ -25,10 +24,11 @@ class FocusScreen extends ConsumerStatefulWidget {
 class _FocusScreenState extends ConsumerState<FocusScreen>
     with WidgetsBindingObserver {
   Timer? _timer;
-  int _remainingSec = 25 * 60;
+  int _remainingSec = 50 * 60;
+  int _sessionTotalSec = 50 * 60;
+  int _selectedMinutes = 50;
   int _countdown = 0;
   bool _running = false;
-  bool _quick = false;
   String? _leaveHint;
   int? _lastAttemptTs;
 
@@ -70,7 +70,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         '${n.day.toString().padLeft(2, '0')}';
   }
 
-  void _beginCountdownThenRun({required bool quick}) {
+  void _beginCountdownThenRun() {
     _timer?.cancel();
     final now = DateTime.now().millisecondsSinceEpoch;
     _lastAttemptTs = now;
@@ -79,11 +79,10 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
             type: FocusLogEventType.focusAttempt,
             tsMs: now,
             dateKey: _todayKey(),
-            meta: {'quick': quick},
+            meta: {'modeMinutes': _selectedMinutes},
           ),
         );
     setState(() {
-      _quick = quick;
       _countdown = 3;
       _running = false;
       _leaveHint = null;
@@ -95,15 +94,14 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
           _countdown--;
           if (_countdown == 0) {
             _running = true;
-            _remainingSec = quick
-                ? FocusFlowLimits.quickStartMinutes * 60
-                : 25 * 60;
+            _sessionTotalSec = _selectedMinutes * 60;
+            _remainingSec = _sessionTotalSec;
             ref.read(focusLogRepositoryProvider).append(
                   FocusLogEvent(
                     type: FocusLogEventType.focusStarted,
                     tsMs: DateTime.now().millisecondsSinceEpoch,
                     dateKey: _todayKey(),
-                    meta: {'quick': quick, 'attemptTs': _lastAttemptTs},
+                    meta: {'modeMinutes': _selectedMinutes, 'attemptTs': _lastAttemptTs},
                   ),
                 );
           }
@@ -118,10 +116,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                   tsMs: DateTime.now().millisecondsSinceEpoch,
                   dateKey: _todayKey(),
                   meta: {
-                    'quick': quick,
-                    'durationSec': quick
-                        ? FocusFlowLimits.quickStartMinutes * 60
-                        : 25 * 60,
+                    'modeMinutes': _selectedMinutes,
+                    'durationSec': _sessionTotalSec,
                   },
                 ),
               );
@@ -133,10 +129,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   @override
   Widget build(BuildContext context) {
     final asyncBlocks = ref.watch(todayBlocksProvider);
-    final total = _quick
-        ? FocusFlowLimits.quickStartMinutes * 60
-        : 25 * 60;
-    final flow = _running ? 1.0 - (_remainingSec / total) : 0.0;
+    final flow = _running ? 1.0 - (_remainingSec / _sessionTotalSec) : 0.0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('집중 모드')),
@@ -152,13 +145,36 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                 style: Theme.of(context).textTheme.displayLarge,
               )
             else ...[
+              Center(
+                child: SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment<int>(value: 50, label: Text('50분')),
+                    ButtonSegment<int>(value: 25, label: Text('25분')),
+                  ],
+                  selected: {_selectedMinutes},
+                  onSelectionChanged: _running
+                      ? null
+                      : (next) {
+                          if (next.isEmpty) return;
+                          setState(() {
+                            _selectedMinutes = next.first;
+                            _sessionTotalSec = _selectedMinutes * 60;
+                            _remainingSec = _sessionTotalSec;
+                          });
+                        },
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
                 _running ? _format(_remainingSec) : '시작 대기',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 24),
-              TimeFlowRing(progress: flow.clamp(0.0, 1.0)),
+              TimeFlowRing(
+                progress: flow.clamp(0.0, 1.0),
+                centerLabel: _format(_remainingSec),
+              ),
             ],
             if (_leaveHint != null) ...[
               const SizedBox(height: 16),
@@ -175,13 +191,8 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
             ),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: () => _beginCountdownThenRun(quick: false),
+              onPressed: _beginCountdownThenRun,
               child: const Text('강제 시작 (3초 카운트다운)'),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: () => _beginCountdownThenRun(quick: true),
-              child: const Text('딱 ${FocusFlowLimits.quickStartMinutes}분만'),
             ),
           ],
         ),
