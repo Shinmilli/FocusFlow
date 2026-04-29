@@ -51,7 +51,12 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
     final showDetails = block.isCurrentTask || _expanded;
     final doneBg = const Color(0xFF80B3F6);
     final doneText = Colors.white;
-    final cardColor = (completed || current) ? doneBg : null;
+    final currentBg = Theme.of(context).colorScheme.primary;
+    final cardColor = completed
+        ? doneBg
+        : current
+            ? currentBg
+            : null;
     final foreground = (completed || current) ? doneText : null;
 
     return Card(
@@ -97,19 +102,6 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  if (!block.isCurrentTask)
-                    IconButton(
-                      tooltip: showDetails ? '압축' : '펼치기',
-                      onPressed: () => setState(() => _expanded = !_expanded),
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.all(2),
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      icon: Icon(
-                        showDetails ? Icons.compress : Icons.expand,
-                        size: 18,
-                        color: foreground,
-                      ),
-                    ),
                   if (widget.onDecompose != null)
                     IconButton(
                       tooltip: 'AI로 더 쪼개기',

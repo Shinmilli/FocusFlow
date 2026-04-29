@@ -69,7 +69,10 @@ class TodayPickTile extends StatelessWidget {
             ? null
             : PopupMenuButton<String>(
                 tooltip: '더보기',
-                icon: Icon(Icons.more_vert, color: completed ? doneText : null),
+                icon: Icon(
+                  Icons.more_vert,
+                  color: completed || current ? doneText : null,
+                ),
                 onSelected: (value) {
                   if (value == 'delete') onDelete?.call();
                   if (value == 'edit') onEditChecklist?.call();
