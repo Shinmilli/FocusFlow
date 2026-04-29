@@ -29,8 +29,8 @@ class TodayPickTile extends StatelessWidget {
     final current = block.isCurrentTask;
     final doneBg = const Color(0xFF80B3F6);
     final doneText = Colors.white;
-    final currentBg = Colors.grey.shade200;
-    final currentTitle = Theme.of(context).colorScheme.primary;
+    final currentBg = Theme.of(context).colorScheme.primary;
+    final currentTitle = Colors.white;
     final cardColor = completed
         ? doneBg
         : current
@@ -61,7 +61,7 @@ class TodayPickTile extends StatelessWidget {
             color: completed
                 ? doneText.withValues(alpha: 0.95)
                 : current
-                    ? Colors.black54
+                    ? doneText.withValues(alpha: 0.9)
                     : null,
           ),
         ),

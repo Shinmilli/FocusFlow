@@ -111,16 +111,26 @@ class LocalPlanningRepository implements PlanningRepository {
   @override
   Future<void> setSelectedForToday(String dateKey, List<String> blockIds) async {
     final selectedByDate = await _loadSelectedByDate();
-    selectedByDate[dateKey] = blockIds.toSet();
+    final selectedSet = blockIds.toSet();
+    selectedByDate[dateKey] = selectedSet;
     await _saveSelectedByDate(selectedByDate);
 
     final all = await _loadAll();
-    final selectedSet = blockIds.toSet();
+    String? currentId;
+    for (final b in all) {
+      if (selectedSet.contains(b.id) && b.isCurrentTask) {
+        currentId = b.id;
+        break;
+      }
+    }
+    if (currentId == null && selectedSet.isNotEmpty) {
+      currentId = blockIds.firstWhere((id) => selectedSet.contains(id), orElse: () => selectedSet.first);
+    }
     final updated = [
       for (final b in all)
         b.copyWith(
           isSelectedForToday: selectedSet.contains(b.id),
-          isCurrentTask: selectedSet.contains(b.id) ? b.isCurrentTask : false,
+          isCurrentTask: currentId != null && b.id == currentId,
         ),
     ];
     await _saveAll(updated);
@@ -162,10 +172,15 @@ class LocalPlanningRepository implements PlanningRepository {
   @override
   Future<void> setCurrentTask(String? blockId) async {
     final all = await _loadAll();
+    final selected = all.where((b) => b.isSelectedForToday).toList();
+    String? currentId = blockId;
+    if (currentId == null && selected.isNotEmpty) {
+      currentId = selected.first.id;
+    }
     final updated = [
       for (final b in all)
         b.copyWith(
-          isCurrentTask: blockId != null && b.id == blockId,
+          isCurrentTask: currentId != null && b.id == currentId,
         ),
     ];
     await _saveAll(updated);

@@ -56,11 +56,21 @@ class InMemoryPlanningRepository implements PlanningRepository {
   Future<void> setSelectedForToday(String dateKey, List<String> blockIds) async {
     final selectedSet = blockIds.toSet();
     _selectedByDate[dateKey] = selectedSet;
+    String? currentId;
+    for (final b in _all) {
+      if (selectedSet.contains(b.id) && b.isCurrentTask) {
+        currentId = b.id;
+        break;
+      }
+    }
+    if (currentId == null && selectedSet.isNotEmpty) {
+      currentId = blockIds.isNotEmpty ? blockIds.first : selectedSet.first;
+    }
     for (var i = 0; i < _all.length; i++) {
       final b = _all[i];
       _all[i] = b.copyWith(
         isSelectedForToday: selectedSet.contains(b.id),
-        isCurrentTask: selectedSet.contains(b.id) ? b.isCurrentTask : false,
+        isCurrentTask: currentId != null && b.id == currentId,
       );
     }
   }
@@ -89,10 +99,19 @@ class InMemoryPlanningRepository implements PlanningRepository {
 
   @override
   Future<void> setCurrentTask(String? blockId) async {
+    String? currentId = blockId;
+    if (currentId == null) {
+      for (final b in _all) {
+        if (b.isSelectedForToday) {
+          currentId = b.id;
+          break;
+        }
+      }
+    }
     for (var i = 0; i < _all.length; i++) {
       final b = _all[i];
       _all[i] = b.copyWith(
-        isCurrentTask: blockId != null && b.id == blockId,
+        isCurrentTask: currentId != null && b.id == currentId,
       );
     }
   }

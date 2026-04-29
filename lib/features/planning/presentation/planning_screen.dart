@@ -50,11 +50,13 @@ class PlanningScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('$e')),
         data: (blocks) {
           final viewportWidth = MediaQuery.of(context).size.width;
+          final isMobile = viewportWidth < 760;
           final isLaptop = viewportWidth >= 760 && viewportWidth < 1200;
-          final pagePadding = isLaptop ? 12.0 : 16.0;
-          final sectionGap = isLaptop ? 8.0 : 12.0;
-          final taskRailHeight = isLaptop ? 300.0 : 252.0;
-          final taskCardWidth = isLaptop ? 240.0 : 220.0;
+          final isLarge = viewportWidth >= 1200;
+          final pagePadding = isMobile ? 16.0 : 12.0;
+          final sectionGap = isMobile ? 12.0 : 8.0;
+          final taskRailHeight = isMobile ? 252.0 : (isLaptop ? 300.0 : 320.0);
+          final taskCardWidth = isMobile ? 220.0 : (isLaptop ? 240.0 : 260.0);
           final currentBlocks = blocks.where((b) => b.isCurrentTask).toList();
           final incompleteBlocks = blocks.where((b) => !b.isFullyComplete && !b.isCurrentTask).toList();
           final completeBlocks = blocks.where((b) => b.isFullyComplete && !b.isCurrentTask).toList();
@@ -113,9 +115,9 @@ class PlanningScreen extends ConsumerWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final contentMaxWidth = isLaptop ? 980.0 : double.infinity;
+              final contentMaxWidth = isMobile ? double.infinity : (isLaptop ? 980.0 : 1180.0);
               final railHeight = isLaptop ? 290.0 : taskRailHeight;
-              final railCardWidth = isLaptop ? 220.0 : taskCardWidth;
+              final railCardWidth = isLarge ? 250.0 : (isLaptop ? 220.0 : taskCardWidth);
               final listChild = blocks.isEmpty
                   ? ListView(
                       padding: EdgeInsets.all(pagePadding),

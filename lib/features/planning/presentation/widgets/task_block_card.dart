@@ -47,13 +47,16 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
   Widget build(BuildContext context) {
     final block = widget.block;
     final completed = block.isFullyComplete;
+    final current = block.isCurrentTask;
     final showDetails = block.isCurrentTask || _expanded;
     final doneBg = const Color(0xFF80B3F6);
     final doneText = Colors.white;
+    final cardColor = (completed || current) ? doneBg : null;
+    final foreground = (completed || current) ? doneText : null;
 
     return Card(
       margin: widget.margin,
-      color: completed ? doneBg : null,
+      color: cardColor,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -83,21 +86,51 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
                     child: Text(
                       block.title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: completed ? doneText : null,
+                            color: foreground,
                           ),
                     ),
                   ),
+                ],
+              ),
+            ),
+            if (!completed)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
                   if (!block.isCurrentTask)
-                    Icon(
-                      showDetails ? Icons.expand_less : Icons.expand_more,
-                      color: completed ? doneText : null,
+                    IconButton(
+                      tooltip: showDetails ? '압축' : '펼치기',
+                      onPressed: () => setState(() => _expanded = !_expanded),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(2),
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      icon: Icon(
+                        showDetails ? Icons.compress : Icons.expand,
+                        size: 18,
+                        color: foreground,
+                      ),
                     ),
-                  if (!completed &&
-                      (widget.onDelete != null ||
-                          widget.onEditChecklist != null ||
-                          widget.onSetCurrentTask != null))
+                  if (widget.onDecompose != null)
+                    IconButton(
+                      tooltip: 'AI로 더 쪼개기',
+                      onPressed: widget.onDecompose,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(2),
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      icon: Icon(
+                        Icons.auto_awesome,
+                        size: 18,
+                        color: foreground,
+                      ),
+                    ),
+                  if (widget.onDelete != null ||
+                      widget.onEditChecklist != null ||
+                      widget.onSetCurrentTask != null)
                     PopupMenuButton<String>(
                       tooltip: '더보기',
+                      padding: const EdgeInsets.all(2),
+                      iconSize: 18,
+                      icon: Icon(Icons.more_vert, color: foreground),
                       onSelected: (value) {
                         if (value == 'delete') widget.onDelete?.call();
                         if (value == 'edit') widget.onEditChecklist?.call();
@@ -118,18 +151,8 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
                         ),
                       ],
                     ),
-                  if (widget.onDecompose != null)
-                    IconButton(
-                      tooltip: 'AI로 더 쪼개기',
-                      onPressed: widget.onDecompose,
-                      icon: Icon(
-                        Icons.auto_awesome,
-                        color: completed ? doneText : null,
-                      ),
-                    ),
                 ],
               ),
-            ),
             if (showDetails) ...[
               const SizedBox(height: 8),
               Expanded(
@@ -145,7 +168,7 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
                             value: u.isDone,
                             title: Text(
                               u.title,
-                              style: TextStyle(color: completed ? doneText : null),
+                              style: TextStyle(color: foreground),
                             ),
                             onChanged: (v) => widget.onToggleUnitDone(u.id, v ?? false),
                           ),
