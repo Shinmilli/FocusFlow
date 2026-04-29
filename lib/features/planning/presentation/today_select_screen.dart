@@ -70,6 +70,8 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                             selected: selected.contains(b.id),
                             disabled: false,
                             maxReached: false,
+                            onDelete: () => _removeFromToday(context, ref, b, selected),
+                            onEditChecklist: () => _editBacklogChecklist(context, ref, b),
                             onSetCurrentTask: () => _setCurrentTask(context, ref, b),
                             onChanged: (next) => _onPickChanged(
                               context,
@@ -213,6 +215,42 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('현재 작업으로 지정했어요.')),
+    );
+  }
+
+  Future<void> _removeFromToday(
+    BuildContext context,
+    WidgetRef ref,
+    TaskBlock block,
+    Set<String> selected,
+  ) async {
+    final shouldRemove = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('오늘 목록에서 제거'),
+        content: Text('`${block.title}` 블록을 오늘 목록에서 제외할까요?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('제외'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldRemove != true) return;
+    final next = {...selected}..remove(block.id);
+    await ref.read(planningRepositoryProvider).setSelectedForToday(todayDateKey(), next.toList());
+    ref.invalidate(todayBlocksProvider);
+    ref.invalidate(backlogBlocksProvider);
+    ref.invalidate(canAddNewBlockProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('오늘 목록에서 제외했어요.')),
     );
   }
 

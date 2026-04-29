@@ -58,13 +58,22 @@ class InMemoryPlanningRepository implements PlanningRepository {
     _selectedByDate[dateKey] = selectedSet;
     String? currentId;
     for (final b in _all) {
-      if (selectedSet.contains(b.id) && b.isCurrentTask) {
+      if (selectedSet.contains(b.id) && b.isCurrentTask && !b.isFullyComplete) {
         currentId = b.id;
         break;
       }
     }
     if (currentId == null && selectedSet.isNotEmpty) {
-      currentId = blockIds.isNotEmpty ? blockIds.first : selectedSet.first;
+      for (final id in blockIds) {
+        for (final b in _all) {
+          if (b.id == id && !b.isFullyComplete) {
+            currentId = id;
+            break;
+          }
+        }
+        if (currentId != null) break;
+      }
+      currentId ??= blockIds.isNotEmpty ? blockIds.first : selectedSet.first;
     }
     for (var i = 0; i < _all.length; i++) {
       final b = _all[i];
@@ -102,9 +111,17 @@ class InMemoryPlanningRepository implements PlanningRepository {
     String? currentId = blockId;
     if (currentId == null) {
       for (final b in _all) {
-        if (b.isSelectedForToday) {
+        if (b.isSelectedForToday && !b.isFullyComplete) {
           currentId = b.id;
           break;
+        }
+      }
+      if (currentId == null) {
+        for (final b in _all) {
+          if (b.isSelectedForToday) {
+            currentId = b.id;
+            break;
+          }
         }
       }
     }

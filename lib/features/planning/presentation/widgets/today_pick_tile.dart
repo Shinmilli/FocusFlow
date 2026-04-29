@@ -67,7 +67,7 @@ class TodayPickTile extends StatelessWidget {
                     : null,
           ),
         ),
-        secondary: onDelete == null
+        secondary: (onDelete == null && onEditChecklist == null && onSetCurrentTask == null)
             ? null
             : PopupMenuButton<String>(
                 tooltip: '더보기',

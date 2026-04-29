@@ -118,13 +118,22 @@ class LocalPlanningRepository implements PlanningRepository {
     final all = await _loadAll();
     String? currentId;
     for (final b in all) {
-      if (selectedSet.contains(b.id) && b.isCurrentTask) {
+      if (selectedSet.contains(b.id) && b.isCurrentTask && !b.isFullyComplete) {
         currentId = b.id;
         break;
       }
     }
     if (currentId == null && selectedSet.isNotEmpty) {
-      currentId = blockIds.firstWhere((id) => selectedSet.contains(id), orElse: () => selectedSet.first);
+      for (final id in blockIds) {
+        for (final b in all) {
+          if (b.id == id && !b.isFullyComplete) {
+            currentId = id;
+            break;
+          }
+        }
+        if (currentId != null) break;
+      }
+      currentId ??= blockIds.firstWhere((id) => selectedSet.contains(id), orElse: () => selectedSet.first);
     }
     final updated = [
       for (final b in all)
@@ -175,7 +184,13 @@ class LocalPlanningRepository implements PlanningRepository {
     final selected = all.where((b) => b.isSelectedForToday).toList();
     String? currentId = blockId;
     if (currentId == null && selected.isNotEmpty) {
-      currentId = selected.first.id;
+      for (final b in selected) {
+        if (!b.isFullyComplete) {
+          currentId = b.id;
+          break;
+        }
+      }
+      currentId ??= selected.first.id;
     }
     final updated = [
       for (final b in all)
