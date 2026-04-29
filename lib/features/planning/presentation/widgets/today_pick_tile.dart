@@ -12,6 +12,7 @@ class TodayPickTile extends StatelessWidget {
     required this.onChanged,
     this.onDelete,
     this.onEditChecklist,
+    this.onSetCurrentTask,
   });
 
   final TaskBlock block;
@@ -21,6 +22,7 @@ class TodayPickTile extends StatelessWidget {
   final ValueChanged<bool> onChanged;
   final VoidCallback? onDelete;
   final VoidCallback? onEditChecklist;
+  final VoidCallback? onSetCurrentTask;
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +33,10 @@ class TodayPickTile extends StatelessWidget {
     final doneText = Colors.white;
     final currentBg = Theme.of(context).colorScheme.primary;
     final currentTitle = Colors.white;
-    final cardColor = completed
-        ? doneBg
-        : current
-            ? currentBg
+    final cardColor = current
+        ? currentBg
+        : completed
+            ? doneBg
             : null;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -76,8 +78,14 @@ class TodayPickTile extends StatelessWidget {
                 onSelected: (value) {
                   if (value == 'delete') onDelete?.call();
                   if (value == 'edit') onEditChecklist?.call();
+                  if (value == 'current') onSetCurrentTask?.call();
                 },
                 itemBuilder: (_) => [
+                  if (onSetCurrentTask != null)
+                    const PopupMenuItem<String>(
+                      value: 'current',
+                      child: Text('현재 작업으로'),
+                    ),
                   if (onEditChecklist != null)
                     const PopupMenuItem<String>(
                       value: 'edit',

@@ -70,6 +70,7 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                             selected: selected.contains(b.id),
                             disabled: false,
                             maxReached: false,
+                            onSetCurrentTask: () => _setCurrentTask(context, ref, b),
                             onChanged: (next) => _onPickChanged(
                               context,
                               ref,
@@ -96,6 +97,7 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                           selected: selected.contains(b.id),
                           disabled: false,
                           maxReached: false,
+                          onSetCurrentTask: () => _setCurrentTask(context, ref, b),
                           onEditChecklist: () => _editBacklogChecklist(context, ref, b),
                           onDelete: () => _confirmDeleteBacklog(context, ref, b),
                           onChanged: (next) => _onPickChanged(
@@ -158,6 +160,9 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
       todayDateKey(),
       nextSet.toList(),
     );
+    if (next) {
+      await repo.setCurrentTask(b.id);
+    }
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
@@ -190,6 +195,24 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('백로그 블록을 삭제했어요.')),
+    );
+  }
+
+  Future<void> _setCurrentTask(BuildContext context, WidgetRef ref, TaskBlock block) async {
+    final repo = ref.read(planningRepositoryProvider);
+    final today = await ref.read(todayBlocksProvider.future);
+    final selected = today.map((b) => b.id).toSet();
+    if (!selected.contains(block.id)) {
+      selected.add(block.id);
+      await repo.setSelectedForToday(todayDateKey(), selected.toList());
+    }
+    await repo.setCurrentTask(block.id);
+    ref.invalidate(todayBlocksProvider);
+    ref.invalidate(backlogBlocksProvider);
+    ref.invalidate(canAddNewBlockProvider);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('현재 작업으로 지정했어요.')),
     );
   }
 
