@@ -59,6 +59,21 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (block.isCurrentTask) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  '현재 작업',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: block.isCurrentTask ? null : () => setState(() => _expanded = !_expanded),
@@ -117,18 +132,26 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
             ),
             if (showDetails) ...[
               const SizedBox(height: 8),
-              ...block.units.map(
-                (u) => CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  activeColor: completed ? Colors.white : null,
-                  checkColor: completed ? doneBg : null,
-                  value: u.isDone,
-                  title: Text(
-                    u.title,
-                    style: TextStyle(color: completed ? doneText : null),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: block.units
+                        .map(
+                          (u) => CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            dense: true,
+                            activeColor: completed ? Colors.white : null,
+                            checkColor: completed ? doneBg : null,
+                            value: u.isDone,
+                            title: Text(
+                              u.title,
+                              style: TextStyle(color: completed ? doneText : null),
+                            ),
+                            onChanged: (v) => widget.onToggleUnitDone(u.id, v ?? false),
+                          ),
+                        )
+                        .toList(),
                   ),
-                  onChanged: (v) => widget.onToggleUnitDone(u.id, v ?? false),
                 ),
               ),
             ],

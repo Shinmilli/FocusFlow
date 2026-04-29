@@ -49,9 +49,16 @@ class PlanningScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (blocks) {
-          final incompleteBlocks = blocks.where((b) => !b.isFullyComplete).toList();
-          final completeBlocks = blocks.where((b) => b.isFullyComplete).toList();
-          final orderedBlocks = [...incompleteBlocks, ...completeBlocks];
+          final viewportWidth = MediaQuery.of(context).size.width;
+          final isLaptop = viewportWidth >= 760 && viewportWidth < 1200;
+          final pagePadding = isLaptop ? 12.0 : 16.0;
+          final sectionGap = isLaptop ? 8.0 : 12.0;
+          final taskRailHeight = isLaptop ? 300.0 : 252.0;
+          final taskCardWidth = isLaptop ? 240.0 : 220.0;
+          final currentBlocks = blocks.where((b) => b.isCurrentTask).toList();
+          final incompleteBlocks = blocks.where((b) => !b.isFullyComplete && !b.isCurrentTask).toList();
+          final completeBlocks = blocks.where((b) => b.isFullyComplete && !b.isCurrentTask).toList();
+          final orderedBlocks = [...currentBlocks, ...incompleteBlocks, ...completeBlocks];
           final xpToNext = PlayerProgress.xpForLevel(progress.level);
           final xpRatio = xpToNext <= 0 ? 0.0 : (progress.xp / xpToNext).clamp(0.0, 1.0);
           final top = Column(
@@ -88,13 +95,13 @@ class PlanningScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: sectionGap),
               FilledButton.icon(
                 onPressed: () => context.push('/focus'),
                 icon: const Icon(Icons.timer_outlined),
                 label: Text(lowEnergy ? '딱 5분만 시작' : '집중 시작'),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: sectionGap),
               Row(
                 children: [
                   Text('오늘', style: Theme.of(context).textTheme.titleSmall),
@@ -104,197 +111,210 @@ class PlanningScreen extends ConsumerWidget {
             ],
           );
 
-          if (blocks.isEmpty) {
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                top,
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final contentMaxWidth = isLaptop ? 980.0 : double.infinity;
+              final railHeight = isLaptop ? 290.0 : taskRailHeight;
+              final railCardWidth = isLaptop ? 220.0 : taskCardWidth;
+              final listChild = blocks.isEmpty
+                  ? ListView(
+                      padding: EdgeInsets.all(pagePadding),
                       children: [
-                        Text('오늘 블록이 비어 있어요', style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 8),
-                        const Text('오늘 할 블록을 선택해 시작해요.'),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () => context.push('/plan/select'),
-                          icon: const Icon(Icons.checklist_rtl_outlined),
-                          label: const Text('오늘 선택'),
+                        top,
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('오늘 블록이 비어 있어요', style: Theme.of(context).textTheme.titleMedium),
+                                const SizedBox(height: 8),
+                                const Text('오늘 할 블록을 선택해 시작해요.'),
+                                const SizedBox(height: 12),
+                                FilledButton.icon(
+                                  onPressed: () => context.push('/plan/select'),
+                                  icon: const Icon(Icons.checklist_rtl_outlined),
+                                  label: const Text('오늘 선택'),
+                                ),
+                                const SizedBox(height: 8),
+                                OutlinedButton.icon(
+                                  onPressed: () => context.push('/plan/add'),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('큰 일 추가하고 쪼개기'),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: sectionGap),
                         OutlinedButton.icon(
-                          onPressed: () => context.push('/plan/add'),
-                          icon: const Icon(Icons.add),
-                          label: const Text('큰 일 추가하고 쪼개기'),
+                          onPressed: () async {
+                            final agent = ref.read(aiAgentServiceProvider);
+                            final ctx = ref.read(userLifeContextProvider);
+                            final repo = ref.read(planningRepositoryProvider);
+
+                            showDialog<void>(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (_) => const AlertDialog(
+                                title: Text('AI 제안 만드는 중...'),
+                                content: Padding(
+                                  padding: EdgeInsets.only(top: 12),
+                                  child: LinearProgressIndicator(),
+                                ),
+                              ),
+                            );
+
+                            try {
+                              final backlog = await repo.loadBacklog();
+                              final proposal = await agent.buildTodayPlan(
+                                context: ctx,
+                                userStatedTasks: backlog.map((b) => b.title).take(8).toList(),
+                                currentBacklog: backlog,
+                              );
+                              if (!context.mounted) return;
+                              Navigator.pop(context);
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(proposal.messageForUser)),
+                              );
+                            } catch (e) {
+                              if (context.mounted) Navigator.pop(context);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('AI 제안 실패: $e')),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.auto_awesome),
+                          label: const Text('AI로 오늘 계획 제안 보기'),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final agent = ref.read(aiAgentServiceProvider);
-                    final ctx = ref.read(userLifeContextProvider);
-                    final repo = ref.read(planningRepositoryProvider);
+                    )
+                  : ListView(
+                      padding: EdgeInsets.all(pagePadding),
+                      children: [
+                        top,
+                        SizedBox(
+                          height: railHeight,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: orderedBlocks.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 10),
+                            itemBuilder: (context, i) {
+                              final b = orderedBlocks[i];
+                              return SizedBox(
+                                width: railCardWidth,
+                                child: TaskBlockCard(
+                                  margin: EdgeInsets.zero,
+                                  block: b,
+                                  onToggleUnitDone: (unitId, done) async {
+                                    final repo = ref.read(planningRepositoryProvider);
+                                    final updatedUnits = b.units
+                                        .map(
+                                          (u) => u.id == unitId ? u.copyWith(isDone: done) : u,
+                                        )
+                                        .toList();
+                                    await repo.updateBlock(b.copyWith(units: updatedUnits));
+                                    ref.invalidate(todayBlocksProvider);
+                                    ref.invalidate(backlogBlocksProvider);
+                                    ref.invalidate(canAddNewBlockProvider);
+                                    if (updatedUnits.every((u) => u.isDone)) {
+                                      ref.read(playerProgressProvider.notifier).grantBlockComplete();
+                                      await ref.read(focusLogRepositoryProvider).append(
+                                            FocusLogEvent(
+                                              type: FocusLogEventType.blockCompleted,
+                                              tsMs: DateTime.now().millisecondsSinceEpoch,
+                                              dateKey: todayDateKey(),
+                                              meta: {'blockTitle': b.title},
+                                            ),
+                                          );
+                                    }
+                                  },
+                                  onDecompose: () async {
+                                    final agent = ref.read(aiAgentServiceProvider);
+                                    final ctx = ref.read(userLifeContextProvider);
+                                    final repo = ref.read(planningRepositoryProvider);
+                                    final uuid = const Uuid();
 
-                    showDialog<void>(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) => const AlertDialog(
-                        title: Text('AI 제안 만드는 중...'),
-                        content: Padding(
-                          padding: EdgeInsets.only(top: 12),
-                          child: LinearProgressIndicator(),
-                        ),
-                      ),
-                    );
+                                    showDialog<void>(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (_) => const AlertDialog(
+                                        title: Text('쪼개는 중...'),
+                                        content: Padding(
+                                          padding: EdgeInsets.only(top: 12),
+                                          child: LinearProgressIndicator(),
+                                        ),
+                                      ),
+                                    );
 
-                    try {
-                      final backlog = await repo.loadBacklog();
-                      final proposal = await agent.buildTodayPlan(
-                        context: ctx,
-                        userStatedTasks: backlog.map((b) => b.title).take(8).toList(),
-                        currentBacklog: backlog,
-                      );
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
+                                    try {
+                                      final units = await agent.decomposeTask(
+                                        taskTitle: b.title,
+                                        context: ctx,
+                                      );
+                                      final sourceUnits = units.isEmpty ? b.units : units;
+                                      final currentTitles = b.units.map((u) => u.title.trim()).toList();
+                                      final nextTitles = sourceUnits.map((u) => u.title.trim()).toList();
+                                      final changed = currentTitles.length != nextTitles.length ||
+                                          currentTitles.asMap().entries.any((e) => e.value != nextTitles[e.key]);
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(proposal.messageForUser)),
-                      );
-                    } catch (e) {
-                      if (context.mounted) Navigator.pop(context);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('AI 제안 실패: $e')),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.auto_awesome),
-                  label: const Text('AI로 오늘 계획 제안 보기'),
-                ),
-              ],
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              top,
-              SizedBox(
-                height: 460,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: orderedBlocks.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (context, i) {
-                    final b = orderedBlocks[i];
-                    return SizedBox(
-                      width: 220,
-                      child: TaskBlockCard(
-                        margin: EdgeInsets.zero,
-                        block: b,
-                        onToggleUnitDone: (unitId, done) async {
-                          final repo = ref.read(planningRepositoryProvider);
-                          final updatedUnits = b.units
-                              .map(
-                                (u) => u.id == unitId ? u.copyWith(isDone: done) : u,
-                              )
-                              .toList();
-                          await repo.updateBlock(b.copyWith(units: updatedUnits));
-                          ref.invalidate(todayBlocksProvider);
-                          ref.invalidate(backlogBlocksProvider);
-                          ref.invalidate(canAddNewBlockProvider);
-                          if (updatedUnits.every((u) => u.isDone)) {
-                            ref.read(playerProgressProvider.notifier).grantBlockComplete();
-                            await ref.read(focusLogRepositoryProvider).append(
-                                  FocusLogEvent(
-                                    type: FocusLogEventType.blockCompleted,
-                                    tsMs: DateTime.now().millisecondsSinceEpoch,
-                                    dateKey: todayDateKey(),
-                                    meta: {'blockTitle': b.title},
-                                  ),
-                                );
-                          }
-                        },
-                        onDecompose: () async {
-                          final agent = ref.read(aiAgentServiceProvider);
-                          final ctx = ref.read(userLifeContextProvider);
-                          final repo = ref.read(planningRepositoryProvider);
-                          final uuid = const Uuid();
-
-                          showDialog<void>(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (_) => const AlertDialog(
-                              title: Text('쪼개는 중...'),
-                              content: Padding(
-                                padding: EdgeInsets.only(top: 12),
-                                child: LinearProgressIndicator(),
-                              ),
-                            ),
-                          );
-
-                          try {
-                            final units = await agent.decomposeTask(
-                              taskTitle: b.title,
-                              context: ctx,
-                            );
-                            final sourceUnits = units.isEmpty ? b.units : units;
-                            final currentTitles = b.units.map((u) => u.title.trim()).toList();
-                            final nextTitles = sourceUnits.map((u) => u.title.trim()).toList();
-                            final changed = currentTitles.length != nextTitles.length ||
-                                currentTitles.asMap().entries.any((e) => e.value != nextTitles[e.key]);
-
-                            await repo.updateBlock(
-                              b.copyWith(
-                                units: [
-                                  for (final u in sourceUnits)
-                                    TaskUnit(id: uuid.v4(), title: u.title, isDone: false),
-                                ],
-                              ),
-                            );
-                            ref.invalidate(todayBlocksProvider);
-                            ref.invalidate(backlogBlocksProvider);
-                            ref.invalidate(canAddNewBlockProvider);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    changed
-                                        ? '체크리스트를 더 잘게 업데이트했어요.'
-                                        : 'AI 분해 결과가 기존과 같아요. 제목을 더 구체적으로 적으면 더 달라져요.',
-                                  ),
+                                      await repo.updateBlock(
+                                        b.copyWith(
+                                          units: [
+                                            for (final u in sourceUnits)
+                                              TaskUnit(id: uuid.v4(), title: u.title, isDone: false),
+                                          ],
+                                        ),
+                                      );
+                                      ref.invalidate(todayBlocksProvider);
+                                      ref.invalidate(backlogBlocksProvider);
+                                      ref.invalidate(canAddNewBlockProvider);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              changed
+                                                  ? '체크리스트를 더 잘게 업데이트했어요.'
+                                                  : 'AI 분해 결과가 기존과 같아요. 제목을 더 구체적으로 적으면 더 달라져요.',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('쪼개기 실패: $e')),
+                                        );
+                                      }
+                                    } finally {
+                                      if (context.mounted) Navigator.pop(context);
+                                    }
+                                  },
+                                  onDelete: b.isFullyComplete
+                                      ? null
+                                      : () => _removeFromTodayOnly(context, ref, b, orderedBlocks),
+                                  onEditChecklist:
+                                      b.isFullyComplete ? null : () => _editTodayChecklist(context, ref, b),
+                                  onSetCurrentTask:
+                                      b.isFullyComplete ? null : () => _setAsCurrentTask(context, ref, b),
                                 ),
                               );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('쪼개기 실패: $e')),
-                              );
-                            }
-                          } finally {
-                            if (context.mounted) Navigator.pop(context);
-                          }
-                        },
-                        onDelete: b.isFullyComplete
-                            ? null
-                            : () => _removeFromTodayOnly(context, ref, b, orderedBlocks),
-                        onEditChecklist:
-                            b.isFullyComplete ? null : () => _editTodayChecklist(context, ref, b),
-                        onSetCurrentTask:
-                            b.isFullyComplete ? null : () => _setAsCurrentTask(context, ref, b),
-                      ),
+                            },
+                          ),
+                        ),
+                      ],
                     );
-                  },
+              return Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentMaxWidth),
+                  child: listChild,
                 ),
-              ),
-            ],
+              );
+            },
           );
         },
       ),
