@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/constants/focus_flow_limits.dart';
 import '../../ai_agent/presentation/ai_providers.dart';
 import '../../focus_session/domain/focus_log_event.dart';
 import '../../focus_session/presentation/focus_log_providers.dart';
@@ -95,11 +94,6 @@ class PlanningScreen extends ConsumerWidget {
               Row(
                 children: [
                   Text('오늘', style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(width: 8),
-                  Text(
-                    '최대 ${FocusFlowLimits.maxSelectableBlocksPerDay}개',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -119,7 +113,7 @@ class PlanningScreen extends ConsumerWidget {
                       children: [
                         Text('오늘 블록이 비어 있어요', style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 8),
-                        const Text('과부하를 막기 위해 오늘은 최대 3개까지 선택해요.'),
+                        const Text('오늘 할 블록을 선택해 시작해요.'),
                         const SizedBox(height: 12),
                         FilledButton.icon(
                           onPressed: () => context.push('/plan/select'),

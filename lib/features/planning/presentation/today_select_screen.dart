@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/focus_flow_limits.dart';
 import '../domain/task_block.dart';
 import 'planning_providers.dart';
 import 'widgets/today_pick_tile.dart';
@@ -23,24 +22,19 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
   Widget build(BuildContext context) {
     final asyncToday = ref.watch(todayBlocksProvider);
     final asyncBacklog = ref.watch(backlogBlocksProvider);
-    final asyncCanAdd = ref.watch(canAddNewBlockProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('오늘 선택'),
       ),
-      body: asyncCanAdd.when(
+      body: asyncToday.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
-        data: (canAdd) {
-          return asyncToday.when(
+        data: (today) {
+          return asyncBacklog.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('$e')),
-            data: (today) {
-              return asyncBacklog.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('$e')),
-                data: (backlog) {
+            data: (backlog) {
                   final selected = today.map((b) => b.id).toSet();
                   final visibleBacklog = backlog.length <= _backlogVisible
                       ? backlog
@@ -52,11 +46,10 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                     children: [
                       TodaySelectHeader(
                         selectedCount: selected.length,
-                        canAdd: canAdd,
                       ),
                       const SizedBox(height: 12),
                       FilledButton.tonalIcon(
-                        onPressed: canAdd ? () => context.push('/plan/add') : null,
+                        onPressed: () => context.push('/plan/add'),
                         icon: const Icon(Icons.add),
                         label: const Text('새 블록 추가 (AI로 쪼개기)'),
                       ),
@@ -74,14 +67,12 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                             block: b.copyWith(isSelectedForToday: true),
                             selected: selected.contains(b.id),
                             disabled: false,
-                            maxReached: canAdd &&
-                                selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
+                            maxReached: false,
                             onChanged: (next) => _onPickChanged(
                               context,
                               ref,
                               b,
                               selected,
-                              canAdd,
                               next,
                             ),
                           ),
@@ -89,11 +80,6 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                       Row(
                         children: [
                           Text('백로그', style: Theme.of(context).textTheme.titleSmall),
-                          const SizedBox(width: 8),
-                          Text(
-                            '(${backlog.length}개)',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -107,15 +93,13 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                           block: b,
                           selected: selected.contains(b.id),
                           disabled: false,
-                          maxReached: canAdd &&
-                              selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay,
+                          maxReached: false,
                           onDelete: () => _confirmDeleteBacklog(context, ref, b),
                           onChanged: (next) => _onPickChanged(
                             context,
                             ref,
                             b,
                             selected,
-                            canAdd,
                             next,
                           ),
                         ),
@@ -144,8 +128,6 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                       ),
                     ],
                   );
-                },
-              );
             },
           );
         },
@@ -158,41 +140,12 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     WidgetRef ref,
     TaskBlock b,
     Set<String> selected,
-    bool canAdd,
     bool next,
   ) async {
     final repo = ref.read(planningRepositoryProvider);
     final nextSet = {...selected};
 
-    if (!canAdd && next && !selected.contains(b.id)) {
-      nextSet
-        ..clear()
-        ..add(b.id);
-      await repo.setSelectedForToday(
-        todayDateKey(),
-        nextSet.toList(),
-      );
-      ref.invalidate(todayBlocksProvider);
-      ref.invalidate(backlogBlocksProvider);
-      ref.invalidate(canAddNewBlockProvider);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('선택한 백로그로 오늘 할 일을 교체했어요.')),
-      );
-      return;
-    }
-
     if (next) {
-      if (selected.length >= FocusFlowLimits.maxSelectableBlocksPerDay) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              '하루 최대 ${FocusFlowLimits.maxSelectableBlocksPerDay}개만 선택할 수 있어요.',
-            ),
-          ),
-        );
-        return;
-      }
       nextSet.add(b.id);
     } else {
       nextSet.remove(b.id);

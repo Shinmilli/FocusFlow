@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../core/constants/focus_flow_limits.dart';
 import '../domain/planning_repository.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
@@ -97,7 +96,7 @@ class LocalPlanningRepository implements PlanningRepository {
     final all = await _loadAll();
     final selectedByDate = await _loadSelectedByDate();
     final sel = selectedByDate[dateKey] ?? {};
-    return all.where((b) => sel.contains(b.id) || b.isSelectedForToday).toList();
+    return all.where((b) => sel.contains(b.id) || b.isSelectedForToday || b.isFullyComplete).toList();
   }
 
   @override
@@ -106,17 +105,11 @@ class LocalPlanningRepository implements PlanningRepository {
     final selectedByDate = await _loadSelectedByDate();
     final sel = selectedByDate[today] ?? {};
     final all = await _loadAll();
-    return all.where((b) => !b.isSelectedForToday && !sel.contains(b.id)).toList();
+    return all.where((b) => !b.isSelectedForToday && !sel.contains(b.id) && !b.isFullyComplete).toList();
   }
 
   @override
   Future<void> setSelectedForToday(String dateKey, List<String> blockIds) async {
-    if (blockIds.length > FocusFlowLimits.maxSelectableBlocksPerDay) {
-      throw StateError(
-        '하루 최대 ${FocusFlowLimits.maxSelectableBlocksPerDay}개 블록만 선택할 수 있어요.',
-      );
-    }
-
     final selectedByDate = await _loadSelectedByDate();
     selectedByDate[dateKey] = blockIds.toSet();
     await _saveSelectedByDate(selectedByDate);
