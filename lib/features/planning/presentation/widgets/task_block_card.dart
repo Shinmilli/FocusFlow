@@ -48,7 +48,7 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
     final block = widget.block;
     final completed = block.isFullyComplete;
     final current = block.isCurrentTask;
-    final showDetails = block.isCurrentTask || _expanded;
+    final showDetails = !completed || block.isCurrentTask || _expanded;
     final doneBg = const Color(0xFF80B3F6);
     final doneText = Colors.white;
     final currentBg = Theme.of(context).colorScheme.primary;
@@ -67,7 +67,7 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (block.isCurrentTask) ...[
+            if (block.isCurrentTask && !completed) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -95,29 +95,10 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
                           ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            if (!completed)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (widget.onDecompose != null)
-                    IconButton(
-                      tooltip: 'AI로 더 쪼개기',
-                      onPressed: widget.onDecompose,
-                      visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.all(2),
-                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      icon: Icon(
-                        Icons.auto_awesome,
-                        size: 18,
-                        color: foreground,
-                      ),
-                    ),
-                  if (widget.onDelete != null ||
-                      widget.onEditChecklist != null ||
-                      widget.onSetCurrentTask != null)
+                  if (!completed &&
+                      (widget.onDelete != null ||
+                          widget.onEditChecklist != null ||
+                          widget.onSetCurrentTask != null))
                     PopupMenuButton<String>(
                       tooltip: '더보기',
                       padding: const EdgeInsets.all(2),
@@ -143,8 +124,22 @@ class _TaskBlockCardState extends State<TaskBlockCard> {
                         ),
                       ],
                     ),
+                  if (!completed && widget.onDecompose != null)
+                    IconButton(
+                      tooltip: 'AI로 더 쪼개기',
+                      onPressed: widget.onDecompose,
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.all(2),
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      icon: Icon(
+                        Icons.auto_awesome,
+                        size: 18,
+                        color: foreground,
+                      ),
+                    ),
                 ],
               ),
+            ),
             if (showDetails) ...[
               const SizedBox(height: 8),
               Expanded(

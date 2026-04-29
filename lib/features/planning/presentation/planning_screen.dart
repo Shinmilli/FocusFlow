@@ -329,48 +329,42 @@ class PlanningScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(4, 10, 4, 10),
               child: SizedBox(
                 height: 72,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _BottomAction(
-                        icon: Icons.date_range_outlined,
-                        label: '주간',
-                        onTap: () => context.push('/plan/week'),
-                      ),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Transform.translate(
-                            offset: const Offset(0, -20),
-                            child: Material(
-                              elevation: 6,
-                              shadowColor: Colors.black26,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              color: Theme.of(context).colorScheme.primary,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(18),
-                                onTap: () => context.push('/plan/select'),
-                                child: const SizedBox(
-                                  width: 56,
-                                  height: 56,
-                                  child: Icon(Icons.add, color: Colors.white, size: 28),
-                                ),
-                              ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _BottomAction(
+                      icon: Icons.date_range_outlined,
+                      label: '주간',
+                      onTap: () => context.push('/plan/week'),
+                    ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Material(
+                          elevation: 6,
+                          shadowColor: Colors.black26,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          color: Theme.of(context).colorScheme.primary,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(18),
+                            onTap: () => context.push('/plan/select'),
+                            child: const SizedBox(
+                              width: 56,
+                              height: 56,
+                              child: Icon(Icons.add, color: Colors.white, size: 28),
                             ),
                           ),
                         ),
                       ),
-                      _BottomAction(
-                        icon: Icons.person_outline,
-                        label: '프로필',
-                        onTap: () => context.push('/profile'),
-                      ),
-                    ],
-                  ),
+                    ),
+                    _BottomAction(
+                      icon: Icons.person_outline,
+                      label: '프로필',
+                      onTap: () => context.push('/profile'),
+                    ),
+                  ],
                 ),
               ),
             ),
