@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../planning/presentation/planning_providers.dart';
+import '../../../core/persistence/user_local_data_scope.dart';
+import '../../../core/time/today_date_key.dart';
 
 enum CoachNudgeType {
   aiTodayPlan,
@@ -15,18 +16,27 @@ enum CoachNudgeIntensity {
 }
 
 class CoachNudgePrefs {
-  CoachNudgePrefs({SharedPreferences? prefs})
-      : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
+  CoachNudgePrefs({
+    required this.storageScope,
+    SharedPreferences? prefs,
+  }) : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
+
+  final String? storageScope;
 
   final Future<SharedPreferences> _prefsFuture;
 
-  static const _kIntensity = 'coach.intensity.v1';
+  static const _kIntensityBase = 'coach.intensity.v1';
   static const _kHiddenUntilPrefix = 'coach.hiddenUntil.'; // + type
   static const _kLastShownDatePrefix = 'coach.lastShownDate.'; // + type
 
+  String? _scoped(String logicalKey) =>
+      storageScope == null ? null : scopedPreferenceKey(logicalKey, storageScope);
+
   Future<CoachNudgeIntensity> intensity() async {
+    final key = _scoped(_kIntensityBase);
+    if (key == null) return CoachNudgeIntensity.active;
     final p = await _prefsFuture;
-    final raw = p.getString(_kIntensity) ?? CoachNudgeIntensity.active.name;
+    final raw = p.getString(key) ?? CoachNudgeIntensity.active.name;
     return CoachNudgeIntensity.values.firstWhere(
       (e) => e.name == raw,
       orElse: () => CoachNudgeIntensity.active,
@@ -34,38 +44,50 @@ class CoachNudgePrefs {
   }
 
   Future<void> setIntensity(CoachNudgeIntensity v) async {
+    final key = _scoped(_kIntensityBase);
+    if (key == null) return;
     final p = await _prefsFuture;
-    await p.setString(_kIntensity, v.name);
+    await p.setString(key, v.name);
   }
 
   Future<String> hiddenUntilDateKey(CoachNudgeType type) async {
+    final key = _scoped('$_kHiddenUntilPrefix${type.name}');
+    if (key == null) return '';
     final p = await _prefsFuture;
-    return p.getString('$_kHiddenUntilPrefix${type.name}') ?? '';
+    return p.getString(key) ?? '';
   }
 
   Future<void> hideForDays(CoachNudgeType type, int days) async {
+    final prefsKey = _scoped('$_kHiddenUntilPrefix${type.name}');
+    if (prefsKey == null) return;
     final p = await _prefsFuture;
     final now = DateTime.now();
     final until = now.add(Duration(days: days));
-    final key = '${until.year.toString().padLeft(4, '0')}-'
+    final untilDate = '${until.year.toString().padLeft(4, '0')}-'
         '${until.month.toString().padLeft(2, '0')}-'
         '${until.day.toString().padLeft(2, '0')}';
-    await p.setString('$_kHiddenUntilPrefix${type.name}', key);
+    await p.setString(prefsKey, untilDate);
   }
 
   Future<void> clearHide(CoachNudgeType type) async {
+    final key = _scoped('$_kHiddenUntilPrefix${type.name}');
+    if (key == null) return;
     final p = await _prefsFuture;
-    await p.remove('$_kHiddenUntilPrefix${type.name}');
+    await p.remove(key);
   }
 
   Future<String> lastShownDateKey(CoachNudgeType type) async {
+    final key = _scoped('$_kLastShownDatePrefix${type.name}');
+    if (key == null) return '';
     final p = await _prefsFuture;
-    return p.getString('$_kLastShownDatePrefix${type.name}') ?? '';
+    return p.getString(key) ?? '';
   }
 
   Future<void> markShownToday(CoachNudgeType type) async {
+    final key = _scoped('$_kLastShownDatePrefix${type.name}');
+    if (key == null) return;
     final p = await _prefsFuture;
-    await p.setString('$_kLastShownDatePrefix${type.name}', todayDateKey());
+    await p.setString(key, todayDateKey());
   }
 
   Future<bool> canShowToday(CoachNudgeType type) async {

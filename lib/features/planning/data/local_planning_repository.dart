@@ -3,28 +3,39 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/persistence/user_local_data_scope.dart';
 import '../domain/planning_repository.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
 
 class LocalPlanningRepository implements PlanningRepository {
   LocalPlanningRepository({
+    required this.storageScope,
     SharedPreferences? prefs,
   }) : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
+
+  /// `guest`일 때만 레거시 키(접미사 없음); 그 외 계정별 키.
+  final String storageScope;
 
   final Future<SharedPreferences> _prefsFuture;
   final _uuid = const Uuid();
 
-  static const _kBlocks = 'planning.blocks.v1';
-  static const _kSelectedByDate = 'planning.selectedByDate.v1';
+  static const _kBlocksBase = 'planning.blocks.v1';
+  static const _kSelectedByDateBase = 'planning.selectedByDate.v1';
+
+  String get _kBlocks => scopedPreferenceKey(_kBlocksBase, storageScope);
+  String get _kSelectedByDate => scopedPreferenceKey(_kSelectedByDateBase, storageScope);
 
   Future<List<TaskBlock>> _loadAll() async {
     final prefs = await _prefsFuture;
     final raw = prefs.getString(_kBlocks);
     if (raw == null || raw.trim().isEmpty) {
-      final seeded = _seedDemo();
-      await _saveAll(seeded);
-      return seeded;
+      if (storageScope == 'guest') {
+        final seeded = _seedDemo();
+        await _saveAll(seeded);
+        return seeded;
+      }
+      return [];
     }
     final decoded = jsonDecode(raw);
     if (decoded is! List) return [];

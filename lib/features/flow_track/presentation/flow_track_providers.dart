@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/persistence/user_local_data_scope.dart';
 import '../../focus_session/presentation/focus_log_providers.dart';
 import '../data/flow_track_repository.dart';
 import '../domain/flow_week_segment.dart';
 
 final flowTrackRepositoryProvider = Provider<FlowTrackRepository>((ref) {
-  return FlowTrackRepository();
+  final scope = ref.watch(userLocalDataStorageSuffixProvider);
+  return FlowTrackRepository(storageScope: scope);
 });
 
 final flowWeeklyTargetProvider = FutureProvider<int>((ref) async {

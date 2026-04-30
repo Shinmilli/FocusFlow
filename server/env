@@ -1,8 +1,0 @@
-PORT=8787
-DATABASE_URL='postgresql://user:lpnMSujt14fQFzNnoCUmnwlFxaJKJSVb@dpg-d7lghe1o3t8c73f5810g-a.singapore-postgres.render.com/focusflow_bkqu'
-JWT_SECRET=change-me-to-a-long-random-string
-JWT_EXPIRES=7d
-# Optional: comma-separated origins for Flutter web (mobile apps ignore CORS)
-CORS_ORIGIN=
-GEMINI_API_KEY='AIzaSyC0v74O_13vVfVasGjM3KVka-zf1ILqkKc'
-GEMINI_MODEL='gemini-1.5-flash'

@@ -3,23 +3,33 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/persistence/user_local_data_scope.dart';
 import '../domain/player_progress.dart';
 
 final playerProgressProvider =
     StateNotifierProvider<PlayerProgressNotifier, PlayerProgress>((ref) {
-  return PlayerProgressNotifier();
+  final scope = ref.watch(userLocalDataStorageSuffixProvider);
+  return PlayerProgressNotifier(scope);
 });
 
 class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
-  PlayerProgressNotifier() : super(const PlayerProgress()) {
-    _load();
+  PlayerProgressNotifier(this._storageScope) : super(const PlayerProgress()) {
+    if (_storageScope != null) _load();
   }
 
-  static const _kProgress = 'player.progress.v1';
+  final String? _storageScope;
+
+  static const _kProgressBase = 'player.progress.v1';
+
+  String? get _kProgress => _storageScope == null
+      ? null
+      : scopedPreferenceKey(_kProgressBase, _storageScope);
 
   Future<void> _load() async {
+    final key = _kProgress;
+    if (key == null) return;
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kProgress);
+    final raw = prefs.getString(key);
     if (raw == null || raw.trim().isEmpty) return;
     try {
       final decoded = PlayerProgress.fromJson(
@@ -32,8 +42,10 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
   }
 
   Future<void> _save() async {
+    final key = _kProgress;
+    if (key == null) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kProgress, jsonEncode(state.toJson()));
+    await prefs.setString(key, jsonEncode(state.toJson()));
   }
 
   String _todayKey() {

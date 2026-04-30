@@ -2,33 +2,56 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/persistence/user_local_data_scope.dart';
 import '../../focus_session/domain/focus_log_event.dart';
 import '../domain/flow_week_segment.dart';
 import '../domain/iso_week.dart';
 
 class FlowTrackRepository {
-  FlowTrackRepository({SharedPreferences? prefs})
-      : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
+  FlowTrackRepository({
+    required this.storageScope,
+    SharedPreferences? prefs,
+  }) : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
+
+  /// null이면 주간 목표·세그먼트 스냅샷만 메모리(비로그인 + API).
+  final String? storageScope;
 
   final Future<SharedPreferences> _prefsFuture;
 
-  static const _kSegments = 'flowtrack.segments.v1';
-  static const _kWeeklyTarget = 'flowtrack.weeklyTarget.v1';
+  static const _kSegmentsBase = 'flowtrack.segments.v1';
+  static const _kWeeklyTargetBase = 'flowtrack.weeklyTarget.v1';
+
+  int _weeklyTargetMem = 5;
+
+  String? get _kSegments =>
+      storageScope == null ? null : scopedPreferenceKey(_kSegmentsBase, storageScope);
+  String? get _kWeeklyTarget =>
+      storageScope == null ? null : scopedPreferenceKey(_kWeeklyTargetBase, storageScope);
 
   Future<int> weeklyTarget() async {
+    final key = _kWeeklyTarget;
+    if (key == null) return _weeklyTargetMem;
     final p = await _prefsFuture;
-    return p.getInt(_kWeeklyTarget) ?? 5;
+    return p.getInt(key) ?? 5;
   }
 
   Future<void> setWeeklyTarget(int v) async {
+    final key = _kWeeklyTarget;
+    final clamped = v.clamp(1, 7);
+    if (key == null) {
+      _weeklyTargetMem = clamped;
+      return;
+    }
     final p = await _prefsFuture;
-    await p.setInt(_kWeeklyTarget, v.clamp(1, 7));
+    await p.setInt(key, clamped);
   }
 
   Future<void> _saveAll(List<FlowWeekSegment> segments) async {
+    final key = _kSegments;
+    if (key == null) return;
     final p = await _prefsFuture;
     final raw = jsonEncode(segments.map((s) => s.toJson()).toList());
-    await p.setString(_kSegments, raw);
+    await p.setString(key, raw);
   }
 
   String _tierForStreak(int streakWeeks) {

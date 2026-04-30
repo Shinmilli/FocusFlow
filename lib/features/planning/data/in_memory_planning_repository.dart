@@ -5,9 +5,12 @@ import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
 
 class InMemoryPlanningRepository implements PlanningRepository {
-  InMemoryPlanningRepository() {
-    _seedDemo();
+  InMemoryPlanningRepository({this.ephemeral = false}) {
+    if (!ephemeral) _seedDemo();
   }
+
+  /// true면 비로그인(API 켜짐)용 — 디스크 없이 빈 저장소.
+  final bool ephemeral;
 
   final _uuid = const Uuid();
   final List<TaskBlock> _all = [];
