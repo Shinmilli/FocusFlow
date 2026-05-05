@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../app/theme/app_chrome.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
 import 'planning_providers.dart';
@@ -17,9 +18,6 @@ class TodaySelectScreen extends ConsumerStatefulWidget {
 }
 
 class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
-  static const _initialBacklogVisible = 3;
-  int _backlogVisible = _initialBacklogVisible;
-
   @override
   Widget build(BuildContext context) {
     final asyncToday = ref.watch(todayBlocksProvider);
@@ -38,10 +36,6 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
             error: (e, _) => Center(child: Text('$e')),
             data: (backlog) {
                   final selected = today.map((b) => b.id).toSet();
-                  final visibleBacklog = backlog.length <= _backlogVisible
-                      ? backlog
-                      : backlog.sublist(0, _backlogVisible);
-                  final hidden = backlog.length - visibleBacklog.length;
 
                   return ListView(
                     padding: const EdgeInsets.all(16),
@@ -70,7 +64,7 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                             selected: selected.contains(b.id),
                             disabled: false,
                             maxReached: false,
-                            onDelete: () => _removeFromToday(context, ref, b, selected),
+                            onDelete: () => _confirmDeleteBlock(context, ref, b),
                             onEditChecklist: () => _editBacklogChecklist(context, ref, b),
                             onSetCurrentTask: () => _setCurrentTask(context, ref, b),
                             onChanged: (next) => _onPickChanged(
@@ -87,13 +81,8 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                           Text('백로그', style: Theme.of(context).textTheme.titleSmall),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '한 번에 다 보이지 않게 접어 두었어요. 필요할 때만 더 펼쳐요.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
                       const SizedBox(height: 8),
-                      for (final b in visibleBacklog)
+                      for (final b in backlog)
                         TodayPickTile(
                           block: b,
                           selected: selected.contains(b.id),
@@ -101,7 +90,7 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                           maxReached: false,
                           onSetCurrentTask: () => _setCurrentTask(context, ref, b),
                           onEditChecklist: () => _editBacklogChecklist(context, ref, b),
-                          onDelete: () => _confirmDeleteBacklog(context, ref, b),
+                          onDelete: () => _confirmDeleteBlock(context, ref, b),
                           onChanged: (next) => _onPickChanged(
                             context,
                             ref,
@@ -110,26 +99,9 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                             next,
                           ),
                         ),
-                      if (hidden > 0)
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _backlogVisible = backlog.length;
-                            });
-                          },
-                          child: Text('백로그 더 보기 (+$hidden)'),
-                        )
-                      else if (backlog.length > _initialBacklogVisible)
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _backlogVisible = _initialBacklogVisible;
-                            });
-                          },
-                          child: const Text('백로그 접기'),
-                        ),
                       const SizedBox(height: 12),
                       FilledButton(
+                        style: AppChrome.primaryActionNavyStyle,
                         onPressed: () => context.pop(),
                         child: const Text('완료'),
                       ),
@@ -168,14 +140,18 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
+    ref.invalidate(blocksForDateProvider(todayDateKey()));
   }
 
-  Future<void> _confirmDeleteBacklog(BuildContext context, WidgetRef ref, TaskBlock block) async {
+  Future<void> _confirmDeleteBlock(BuildContext context, WidgetRef ref, TaskBlock block) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('백로그 삭제'),
-        content: Text('`${block.title}` 블록을 삭제할까요?'),
+        title: const Text('블록 삭제'),
+        content: Text(
+          '`${block.title}` 블록을 완전히 삭제할까요?\n'
+          '오늘·백로그·다른 날짜 선택에서도 모두 사라져요.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -191,12 +167,14 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
 
     if (shouldDelete != true) return;
     await ref.read(planningRepositoryProvider).deleteBlock(block.id);
+    final key = todayDateKey();
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
+    ref.invalidate(blocksForDateProvider(key));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('백로그 블록을 삭제했어요.')),
+      const SnackBar(content: Text('블록을 삭제했어요.')),
     );
   }
 
@@ -212,45 +190,10 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
+    ref.invalidate(blocksForDateProvider(todayDateKey()));
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('현재 작업으로 지정했어요.')),
-    );
-  }
-
-  Future<void> _removeFromToday(
-    BuildContext context,
-    WidgetRef ref,
-    TaskBlock block,
-    Set<String> selected,
-  ) async {
-    final shouldRemove = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('오늘 목록에서 제거'),
-        content: Text('`${block.title}` 블록을 오늘 목록에서 제외할까요?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('제외'),
-          ),
-        ],
-      ),
-    );
-
-    if (shouldRemove != true) return;
-    final next = {...selected}..remove(block.id);
-    await ref.read(planningRepositoryProvider).setSelectedForToday(todayDateKey(), next.toList());
-    ref.invalidate(todayBlocksProvider);
-    ref.invalidate(backlogBlocksProvider);
-    ref.invalidate(canAddNewBlockProvider);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('오늘 목록에서 제외했어요.')),
     );
   }
 
@@ -328,6 +271,7 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                   ),
                   const SizedBox(height: 8),
                   FilledButton(
+                    style: AppChrome.primaryActionNavyStyle,
                     onPressed: () => Navigator.pop(sheetContext, true),
                     child: const Text('저장'),
                   ),

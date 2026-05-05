@@ -1,4 +1,4 @@
-/// XP, 레벨, 스트릭, 배지(확장용).
+/// XP, 레벨, 연속, 배지(확장용).
 class PlayerProgress {
   const PlayerProgress({
     this.xp = 0,

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/persistence/user_local_data_scope.dart';
 import '../../../core/time/today_date_key.dart';
+import '../../sync/presentation/sync_providers.dart';
 import '../data/in_memory_planning_repository.dart';
 import '../data/local_planning_repository.dart';
 import '../domain/planning_repository.dart';
@@ -14,7 +15,11 @@ final planningRepositoryProvider = Provider<PlanningRepository>((ref) {
   if (scope == null) {
     return InMemoryPlanningRepository(ephemeral: true);
   }
-  return LocalPlanningRepository(storageScope: scope);
+  final sched = ref.watch(userSyncSchedulerProvider);
+  return LocalPlanningRepository(
+    storageScope: scope,
+    onMutate: sched.schedulePush,
+  );
 });
 
 final todayBlocksProvider = FutureProvider<List<TaskBlock>>((ref) async {
@@ -30,6 +35,11 @@ final blocksForDateProvider = FutureProvider.family<List<TaskBlock>, String>((re
 final backlogBlocksProvider = FutureProvider<List<TaskBlock>>((ref) async {
   final repo = ref.watch(planningRepositoryProvider);
   return repo.loadBacklog();
+});
+
+final backlogForDateProvider = FutureProvider.family<List<TaskBlock>, String>((ref, dateKey) async {
+  final repo = ref.watch(planningRepositoryProvider);
+  return repo.loadBacklogForDate(dateKey);
 });
 
 final canAddNewBlockProvider = FutureProvider<bool>((ref) async {

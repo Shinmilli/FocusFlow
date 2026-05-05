@@ -15,7 +15,7 @@ class XpStrip extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Lv.${progress.level} · 스트릭 ${progress.streakDays}일'),
+        Text('Lv.${progress.level} · 연속 ${progress.streakDays}일'),
         const SizedBox(height: 4),
         ClipRRect(
           borderRadius: BorderRadius.circular(8),

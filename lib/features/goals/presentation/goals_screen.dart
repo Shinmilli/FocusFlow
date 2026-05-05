@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/app_chrome.dart';
+import '../../sync/presentation/sync_providers.dart';
 import 'goals_providers.dart';
 
 class GoalsScreen extends ConsumerStatefulWidget {
@@ -38,6 +40,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
       final list = _ctrls.map((c) => c.text).toList();
       await ref.read(goalsPrefsProvider).save(list);
       ref.invalidate(goalsProvider);
+      ref.read(userSyncSchedulerProvider).schedulePush();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('저장했어요')),
@@ -68,6 +71,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   Widget build(BuildContext context) {
     final asyncGoals = ref.watch(goalsProvider);
     return Scaffold(
+      backgroundColor: AppChrome.pageBackground,
       appBar: AppBar(
         title: const Text('목표'),
         actions: [
@@ -83,15 +87,15 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
         data: (goals) {
           _ensureControllers(goals);
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    '목표는 3개 이상 입력해도 돼요. 여기에 적은 내용은 AI 제안/계획에 힌트로 사용돼요.',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+              Container(
+                width: double.infinity,
+                decoration: AppChrome.softCardDecoration(),
+                padding: const EdgeInsets.all(14),
+                child: Text(
+                  '목표는 3개 이상 입력해도 돼요. 여기에 적은 내용은 AI 제안/계획에 힌트로 사용돼요.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF5C6378)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -129,6 +133,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               ),
               const SizedBox(height: 12),
               FilledButton(
+                style: AppChrome.primaryActionNavyStyle,
                 onPressed: _saving ? null : _save,
                 child: const Text('저장'),
               ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -12,12 +13,18 @@ class LocalPlanningRepository implements PlanningRepository {
   LocalPlanningRepository({
     required this.storageScope,
     SharedPreferences? prefs,
+    this.onMutate,
   }) : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
 
   /// `guest`일 때만 레거시 키(접미사 없음); 그 외 계정별 키.
   final String storageScope;
 
+  /// 블록·선택 상태가 바뀐 뒤 (서버 동기화 등).
+  final VoidCallback? onMutate;
+
   final Future<SharedPreferences> _prefsFuture;
+
+  void _fireMutate() => onMutate?.call();
   final _uuid = const Uuid();
 
   static const _kBlocksBase = 'planning.blocks.v1';
@@ -107,7 +114,14 @@ class LocalPlanningRepository implements PlanningRepository {
     final all = await _loadAll();
     final selectedByDate = await _loadSelectedByDate();
     final sel = selectedByDate[dateKey] ?? {};
-    return all.where((b) => sel.contains(b.id) || b.isSelectedForToday || b.isFullyComplete).toList();
+    final today = _todayKey();
+    if (dateKey == today) {
+      if (sel.isNotEmpty) {
+        return all.where((b) => sel.contains(b.id)).toList();
+      }
+      return all.where((b) => b.isSelectedForToday).toList();
+    }
+    return all.where((b) => sel.contains(b.id)).toList();
   }
 
   @override
@@ -116,7 +130,20 @@ class LocalPlanningRepository implements PlanningRepository {
     final selectedByDate = await _loadSelectedByDate();
     final sel = selectedByDate[today] ?? {};
     final all = await _loadAll();
-    return all.where((b) => !b.isSelectedForToday && !sel.contains(b.id) && !b.isFullyComplete).toList();
+    return all
+        .where((b) {
+          final inPlan = sel.contains(b.id) || (sel.isEmpty && b.isSelectedForToday);
+          return !inPlan && !b.isFullyComplete;
+        })
+        .toList();
+  }
+
+  @override
+  Future<List<TaskBlock>> loadBacklogForDate(String dateKey) async {
+    final all = await _loadAll();
+    final selectedByDate = await _loadSelectedByDate();
+    final sel = selectedByDate[dateKey] ?? {};
+    return all.where((b) => !sel.contains(b.id) && !b.isFullyComplete).toList();
   }
 
   @override
@@ -154,12 +181,14 @@ class LocalPlanningRepository implements PlanningRepository {
         ),
     ];
     await _saveAll(updated);
+    _fireMutate();
   }
 
   @override
   Future<void> addBlock(TaskBlock block) async {
     final all = await _loadAll();
     await _saveAll([...all, block]);
+    _fireMutate();
   }
 
   @override
@@ -169,6 +198,7 @@ class LocalPlanningRepository implements PlanningRepository {
     if (i < 0) return;
     all[i] = block;
     await _saveAll(all);
+    _fireMutate();
   }
 
   @override
@@ -187,6 +217,7 @@ class LocalPlanningRepository implements PlanningRepository {
       }
     }
     await _saveSelectedByDate(selectedByDate);
+    _fireMutate();
   }
 
   @override
@@ -210,6 +241,7 @@ class LocalPlanningRepository implements PlanningRepository {
         ),
     ];
     await _saveAll(updated);
+    _fireMutate();
   }
 
   @override

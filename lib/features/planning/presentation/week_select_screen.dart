@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../app/theme/app_chrome.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
 import 'planning_providers.dart';
 import 'widgets/today_pick_tile.dart';
-import 'widgets/today_select_header.dart';
 
 class WeekSelectScreen extends ConsumerStatefulWidget {
   const WeekSelectScreen({super.key});
@@ -17,8 +18,6 @@ class WeekSelectScreen extends ConsumerStatefulWidget {
 }
 
 class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
-  static const _initialBacklogVisible = 4;
-  int _backlogVisible = _initialBacklogVisible;
   late DateTime _selectedDay;
 
   @override
@@ -39,9 +38,20 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
   }
 
   DateTime _startOfWeek(DateTime d) {
-    // Monday-start week.
     final delta = (d.weekday - DateTime.monday) % 7;
     return DateTime(d.year, d.month, d.day).subtract(Duration(days: delta));
+  }
+
+  void _invalidateWeekAround(WidgetRef ref, DateTime anchor) {
+    final start = _startOfWeek(anchor);
+    for (var i = 0; i < 7; i++) {
+      final k = _dateKey(start.add(Duration(days: i)));
+      ref.invalidate(blocksForDateProvider(k));
+      ref.invalidate(backlogForDateProvider(k));
+    }
+    ref.invalidate(todayBlocksProvider);
+    ref.invalidate(backlogBlocksProvider);
+    ref.invalidate(canAddNewBlockProvider);
   }
 
   @override
@@ -52,130 +62,172 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     final isToday = selectedKey == todayDateKey();
 
     final asyncSelectedBlocks = ref.watch(blocksForDateProvider(selectedKey));
-    final asyncBacklog = ref.watch(backlogBlocksProvider);
+
+    final shell = StatefulNavigationShell.maybeOf(context);
 
     return Scaffold(
+      backgroundColor: AppChrome.pageBackground,
       appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         title: const Text('이번 주 조정'),
+        leading: shell != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                tooltip: '오늘',
+                onPressed: () => shell.goBranch(0),
+              )
+            : null,
+        automaticallyImplyLeading: shell == null,
       ),
       body: asyncSelectedBlocks.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('$e')),
         data: (selectedBlocks) {
-          return asyncBacklog.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('$e')),
-            data: (backlog) {
-                  final selected = selectedBlocks.map((b) => b.id).toSet();
-                  final visibleBacklog = backlog.length <= _backlogVisible
-                      ? backlog
-                      : backlog.sublist(0, _backlogVisible);
-                  final hidden = backlog.length - visibleBacklog.length;
+          final selected = selectedBlocks.map((b) => b.id).toSet();
+          final todos = selectedBlocks.where((b) => !b.isFullyComplete).toList();
+          final dones = selectedBlocks.where((b) => b.isFullyComplete).toList();
 
-                  return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      Text(
-                        '일주일 단위로 “오늘 선택”을 조정해요.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 8),
-                      _WeekStrip(
-                        days: days,
-                        selected: _selectedDay,
-                        onSelect: (d) => setState(() => _selectedDay = d),
-                      ),
-                      const SizedBox(height: 12),
-                      if (!isToday)
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              '지금은 ${_selectedDay.month}/${_selectedDay.day}을(를) 편집 중이에요. '
-                              '선택은 자유롭게 바꿀 수 있어요.',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ),
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            children: [
+              Text(
+                '일주일 단위로 날짜별 계획을 조정해요.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF5C6378),
+                    ),
+              ),
+              const SizedBox(height: 12),
+              _WeekStrip(
+                days: days,
+                selected: _selectedDay,
+                onSelect: (d) => setState(() => _selectedDay = d),
+              ),
+              const SizedBox(height: 16),
+              if (!isToday)
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: AppChrome.softCardDecoration(),
+                  child: Text(
+                    '지금은 ${_selectedDay.month}/${_selectedDay.day} 계획을 보고 있어요.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFF5C6378),
                         ),
-                      if (!isToday) const SizedBox(height: 12),
-                      TodaySelectHeader(
-                        selectedCount: selected.length,
+                  ),
+                ),
+              if (!isToday) const SizedBox(height: 16),
+              Text(
+                'Plan list',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF5C6378),
+                      letterSpacing: 0.4,
+                    ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '끝낸 리스트 · ${dones.length}개',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2C3140),
+                    ),
+              ),
+              const SizedBox(height: 8),
+              if (dones.isEmpty)
+                Text(
+                  '이 날짜에 완료된 블록이 없어요.',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
                       ),
-                      const SizedBox(height: 12),
-                      FilledButton.tonalIcon(
-                        onPressed: () => context.push('/plan/add'),
-                        icon: const Icon(Icons.add),
-                        label: const Text('새 블록 추가 (AI로 쪼개기)'),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '${_selectedDay.month}/${_selectedDay.day}',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      if (selectedBlocks.isEmpty)
-                        Text(
-                          '선택된 블록이 없어요. 아래 백로그에서 골라요.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        )
-                      else
-                        for (final b in selectedBlocks)
-                          TodayPickTile(
-                            block: b.copyWith(isSelectedForToday: isToday),
-                            selected: selected.contains(b.id),
-                            disabled: false,
-                            maxReached: false,
-                            onChanged: (next) => _onPickChanged(
-                              context,
-                              ref,
-                              selectedKey,
-                              b,
-                              selected,
-                              next,
-                            ),
-                          ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Text('백로그', style: Theme.of(context).textTheme.titleSmall),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      for (final b in visibleBacklog)
-                        TodayPickTile(
-                          block: b,
-                          selected: selected.contains(b.id),
-                          disabled: false,
-                          maxReached: false,
-                          onEditChecklist: () => _editBacklogChecklist(context, ref, b),
-                          onDelete: () => _confirmDeleteBacklog(context, ref, b),
-                          onChanged: (next) => _onPickChanged(
-                            context,
-                            ref,
-                            selectedKey,
-                            b,
-                            selected,
-                            next,
-                          ),
+                )
+              else
+                for (final b in dones)
+                  TodayPickTile(
+                    block: b,
+                    selected: selected.contains(b.id),
+                    disabled: false,
+                    maxReached: false,
+                    variant: TodayPickTileVariant.weekPlan,
+                    onDelete: () => _confirmDeleteBlock(context, ref, b),
+                    onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+                    onChanged: (next) => _onPickChanged(
+                      context,
+                      ref,
+                      selectedKey,
+                      b,
+                      selected,
+                      next,
+                    ),
+                  ),
+              const SizedBox(height: 20),
+              Text(
+                '할 리스트 · ${todos.length}개',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF2C3140),
+                    ),
+              ),
+              const SizedBox(height: 8),
+              if (todos.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    '아직 넣은 블록이 없어요. 편집에서 백로그·새 블록으로 채울 수 있어요.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
                         ),
-                      if (hidden > 0)
-                        TextButton(
-                          onPressed: () => setState(() => _backlogVisible = backlog.length),
-                          child: Text('백로그 더 보기 (+$hidden)'),
-                        )
-                      else if (backlog.length > _initialBacklogVisible)
-                        TextButton(
-                          onPressed: () => setState(() => _backlogVisible = _initialBacklogVisible),
-                          child: const Text('백로그 접기'),
-                        ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        onPressed: () => context.pop(),
-                        child: const Text('완료'),
-                      ),
-                    ],
-                  );
-            },
+                  ),
+                )
+              else
+                for (final b in todos)
+                  TodayPickTile(
+                    block: b,
+                    selected: selected.contains(b.id),
+                    disabled: false,
+                    maxReached: false,
+                    variant: TodayPickTileVariant.weekPlan,
+                    onDelete: () => _confirmDeleteBlock(context, ref, b),
+                    onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+                    onChanged: (next) => _onPickChanged(
+                      context,
+                      ref,
+                      selectedKey,
+                      b,
+                      selected,
+                      next,
+                    ),
+                  ),
+              const SizedBox(height: 24),
+              Text(
+                '편집',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF5C6378),
+                      letterSpacing: 0.3,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: AppChrome.softCardDecoration(),
+                child: FilledButton.tonalIcon(
+                  onPressed: () => context.push(
+                    '/plan/week/edit?date=${Uri.encodeQueryComponent(selectedKey)}',
+                  ),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('이 날짜 계획 편집'),
+                  style: FilledButton.styleFrom(
+                    foregroundColor: AppChrome.heroCardDark,
+                    backgroundColor: const Color(0xFFE8ECF8),
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -201,19 +253,22 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
 
     await repo.setSelectedForToday(dateKey, nextSet.toList());
 
-    // Invalidate both "today" and the selected date providers.
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(blocksForDateProvider(dateKey));
+    ref.invalidate(backlogForDateProvider(dateKey));
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
   }
 
-  Future<void> _confirmDeleteBacklog(BuildContext context, WidgetRef ref, TaskBlock block) async {
+  Future<void> _confirmDeleteBlock(BuildContext context, WidgetRef ref, TaskBlock block) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('백로그 삭제'),
-        content: Text('`${block.title}` 블록을 삭제할까요?'),
+        title: const Text('블록 삭제'),
+        content: Text(
+          '`${block.title}` 블록을 완전히 삭제할까요?\n'
+          '오늘·백로그·다른 날짜 선택에서도 모두 사라져요.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -229,13 +284,10 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
 
     if (shouldDelete != true) return;
     await ref.read(planningRepositoryProvider).deleteBlock(block.id);
-    ref.invalidate(todayBlocksProvider);
-    ref.invalidate(blocksForDateProvider(_dateKey(_selectedDay)));
-    ref.invalidate(backlogBlocksProvider);
-    ref.invalidate(canAddNewBlockProvider);
+    _invalidateWeekAround(ref, _selectedDay);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('백로그 블록을 삭제했어요.')),
+      const SnackBar(content: Text('블록을 삭제했어요.')),
     );
   }
 
@@ -313,6 +365,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
                   ),
                   const SizedBox(height: 8),
                   FilledButton(
+                    style: AppChrome.primaryActionNavyStyle,
                     onPressed: () => Navigator.pop(sheetContext, true),
                     child: const Text('저장'),
                   ),
@@ -348,6 +401,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     await ref.read(planningRepositoryProvider).updateBlock(block.copyWith(units: nextUnits));
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(blocksForDateProvider(_dateKey(_selectedDay)));
+    ref.invalidate(backlogForDateProvider(_dateKey(_selectedDay)));
     ref.invalidate(backlogBlocksProvider);
     ref.invalidate(canAddNewBlockProvider);
     if (!context.mounted) return;
@@ -370,22 +424,30 @@ class _WeekStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: days.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final d = days[i];
-          final isSelected = d.year == selected.year && d.month == selected.month && d.day == selected.day;
-          final label = '${_weekdayShort(d.weekday)} ${d.day}';
-          return ChoiceChip(
-            selected: isSelected,
-            label: Text(label),
-            onSelected: (_) => onSelect(d),
-          );
-        },
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: AppChrome.softCardDecoration(),
+      child: SizedBox(
+        height: 40,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: days.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, i) {
+            final d = days[i];
+            final isSelected =
+                d.year == selected.year && d.month == selected.month && d.day == selected.day;
+            final label = '${_weekdayShort(d.weekday)} ${d.day}';
+            return FilterChip(
+              selected: isSelected,
+              showCheckmark: false,
+              label: Text(label),
+              selectedColor: AppChrome.heroAccentBlue.withValues(alpha: 0.22),
+              side: const BorderSide(color: AppChrome.softBorder),
+              onSelected: (_) => onSelect(d),
+            );
+          },
+        ),
       ),
     );
   }
@@ -403,4 +465,3 @@ class _WeekStrip extends StatelessWidget {
     };
   }
 }
-

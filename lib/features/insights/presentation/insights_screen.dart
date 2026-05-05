@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/app_chrome.dart';
 import '../../focus_session/domain/focus_log_event.dart';
 import '../../focus_session/presentation/focus_log_providers.dart';
 import '../../gamification/presentation/gamification_providers.dart';
@@ -18,6 +19,7 @@ class InsightsScreen extends ConsumerWidget {
     final asyncDerived = ref.watch(derivedSignalsProvider);
 
     return Scaffold(
+      backgroundColor: AppChrome.pageBackground,
       appBar: AppBar(
         title: const Text('기록/통계'),
         actions: [
@@ -37,7 +39,7 @@ class InsightsScreen extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
           ref.watch(todaySummaryProvider).when(
                 loading: () => const _LoadingCard(title: '오늘 요약'),
@@ -63,8 +65,8 @@ class InsightsScreen extends ConsumerWidget {
               ),
           const SizedBox(height: 12),
           _StatCard(
-            title: '레벨/스트릭',
-            child: Text('Lv.${progress.level} · 스트릭 ${progress.streakDays}일'),
+            title: '레벨/연속',
+            child: Text('Lv.${progress.level} · 연속 ${progress.streakDays}일'),
           ),
           const SizedBox(height: 12),
           asyncBlocks.when(
@@ -138,17 +140,26 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            child,
-          ],
-        ),
+    return Container(
+      width: double.infinity,
+      decoration: AppChrome.softCardDecoration(),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1A1C26),
+                ),
+          ),
+          const SizedBox(height: 10),
+          DefaultTextStyle.merge(
+            style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: const Color(0xFF5C6378)),
+            child: child,
+          ),
+        ],
       ),
     );
   }

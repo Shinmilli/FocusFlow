@@ -1,33 +1,33 @@
 import 'package:flutter/material.dart';
 
+import '../../../../app/theme/app_chrome.dart';
+
 class TimeFlowRing extends StatelessWidget {
   const TimeFlowRing({
     super.key,
     required this.progress,
     required this.centerLabel,
+    this.centerColor,
   });
 
   final double progress;
   final String centerLabel;
+  final Color? centerColor;
 
   @override
   Widget build(BuildContext context) {
+    final p = progress.clamp(0.0, 1.0);
+    final labelStyle = Theme.of(context).textTheme.titleLarge?.copyWith(
+          color: centerColor ?? const Color(0xFF2C3140),
+          fontWeight: FontWeight.w800,
+        );
     return SizedBox(
       height: 200,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: progress),
-        duration: const Duration(milliseconds: 400),
-        builder: (context, value, _) {
-          return CustomPaint(
-            painter: _RingPainter(value, Theme.of(context).colorScheme.primary),
-            child: Center(
-              child: Text(
-                centerLabel,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-          );
-        },
+      child: CustomPaint(
+        painter: _RingPainter(p, AppChrome.heroAccentBlue),
+        child: Center(
+          child: Text(centerLabel, style: labelStyle),
+        ),
       ),
     );
   }
@@ -41,7 +41,7 @@ class _RingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final stroke = 12.0;
+    const stroke = 12.0;
     final rect = Offset.zero & size;
     final center = rect.center;
     final radius = (size.shortestSide - stroke) / 2;
@@ -73,4 +73,3 @@ class _RingPainter extends CustomPainter {
     return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }
-

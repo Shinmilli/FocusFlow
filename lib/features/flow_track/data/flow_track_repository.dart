@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/persistence/user_local_data_scope.dart';
@@ -11,10 +12,13 @@ class FlowTrackRepository {
   FlowTrackRepository({
     required this.storageScope,
     SharedPreferences? prefs,
+    this.onMutate,
   }) : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
 
   /// null이면 주간 목표·세그먼트 스냅샷만 메모리(비로그인 + API).
   final String? storageScope;
+
+  final VoidCallback? onMutate;
 
   final Future<SharedPreferences> _prefsFuture;
 
@@ -44,6 +48,7 @@ class FlowTrackRepository {
     }
     final p = await _prefsFuture;
     await p.setInt(key, clamped);
+    onMutate?.call();
   }
 
   Future<void> _saveAll(List<FlowWeekSegment> segments) async {
@@ -64,6 +69,36 @@ class FlowTrackRepository {
     if (streakWeeks >= 4) return 'Silver';
     if (streakWeeks >= 2) return 'Bronze';
     return 'Iron';
+  }
+
+  static String tierLabelKo(String tierEn) {
+    return switch (tierEn) {
+      'Iron' => '아이언',
+      'Bronze' => '브론즈',
+      'Silver' => '실버',
+      'Gold' => '골드',
+      'Platinum' => '플래티넘',
+      'Sapphire' => '사파이어',
+      'Ruby' => '루비',
+      'Diamond' => '다이아몬드',
+      'Mythic' => '신화',
+      _ => tierEn,
+    };
+  }
+
+  /// UI 안내용 — [_tierForStreak] 기준과 동일한 연속 주 수.
+  static List<(String tier, String requirementKo)> tierMilestonesDescriptionRows() {
+    return const [
+      ('Iron', '연속 목표 달성 1주까지 (시작)'),
+      ('Bronze', '연속 2주 이상'),
+      ('Silver', '연속 4주 이상'),
+      ('Gold', '연속 7주 이상'),
+      ('Platinum', '연속 10주 이상'),
+      ('Sapphire', '연속 14주 이상'),
+      ('Ruby', '연속 19주 이상'),
+      ('Diamond', '연속 27주 이상'),
+      ('Mythic', '연속 40주 이상'),
+    ];
   }
 
   Future<List<FlowWeekSegment>> buildSegmentsFromEvents(List<FocusLogEvent> events) async {

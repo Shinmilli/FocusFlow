@@ -43,16 +43,30 @@ class InMemoryPlanningRepository implements PlanningRepository {
   @override
   Future<List<TaskBlock>> loadTodayVisibleBlocks(String dateKey) async {
     final sel = _selectedByDate[dateKey] ?? {};
-    return _all.where((b) => sel.contains(b.id) || b.isSelectedForToday || b.isFullyComplete).toList();
+    final today = _todayKey();
+    if (dateKey == today) {
+      if (sel.isNotEmpty) {
+        return _all.where((b) => sel.contains(b.id)).toList();
+      }
+      return _all.where((b) => b.isSelectedForToday).toList();
+    }
+    return _all.where((b) => sel.contains(b.id)).toList();
   }
 
   @override
   Future<List<TaskBlock>> loadBacklog() async {
     final today = _todayKey();
     final sel = _selectedByDate[today] ?? {};
-    return _all
-        .where((b) => !b.isSelectedForToday && !sel.contains(b.id) && !b.isFullyComplete)
-        .toList();
+    return _all.where((b) {
+      final inPlan = sel.contains(b.id) || (sel.isEmpty && b.isSelectedForToday);
+      return !inPlan && !b.isFullyComplete;
+    }).toList();
+  }
+
+  @override
+  Future<List<TaskBlock>> loadBacklogForDate(String dateKey) async {
+    final sel = _selectedByDate[dateKey] ?? {};
+    return _all.where((b) => !sel.contains(b.id) && !b.isFullyComplete).toList();
   }
 
   @override

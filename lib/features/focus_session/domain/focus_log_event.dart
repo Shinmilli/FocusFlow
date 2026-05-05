@@ -4,6 +4,8 @@ enum FocusLogEventType {
   focusStarted, // 실제 집중 시작(카운트다운 후)
   focusCompleted, // 타이머 완료
   distraction, // 앱 이탈/딴생각 등
+  /// 집중 중 '잠깐 적어두기' — 이탈 횟수·코치 신호에는 포함하지 않음.
+  parkedThought,
   blockCompleted, // 오늘 블록 1개 완료
   notificationShown, // 로컬 알림 표시
   notificationTapped, // 알림 탭

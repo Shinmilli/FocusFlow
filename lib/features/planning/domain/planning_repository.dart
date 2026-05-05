@@ -5,8 +5,11 @@ abstract class PlanningRepository {
   /// 오늘 선택된 블록만 노출 과부하 방지용으로 조회.
   Future<List<TaskBlock>> loadTodayVisibleBlocks(String dateKey);
 
-  /// 백로그(오늘 안 고른 일) — 한 번에 많이 보이지 않게 UI에서 접기.
+  /// 백로그(오늘/선택한 날짜에 고르지 않은 블록).
   Future<List<TaskBlock>> loadBacklog();
+
+  /// [dateKey]에 계획에 넣지 않은 블록(주간 화면용).
+  Future<List<TaskBlock>> loadBacklogForDate(String dateKey);
 
   /// 오늘 블록으로 최대 [max]개까지 선택.
   Future<void> setSelectedForToday(String dateKey, List<String> blockIds);

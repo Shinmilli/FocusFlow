@@ -30,6 +30,8 @@ class AuthApiClient {
         if (_token != null && _token!.isNotEmpty) 'Authorization': 'Bearer $_token',
       };
 
+  Map<String, String> authorizedHeaders({bool jsonBody = false}) => _headers(jsonBody: jsonBody);
+
   /// Cold spin / proxy errors (502) often omit CORS headers; the browser surfaces that as a failed fetch.
   Future<bool> pingHealth() async {
     final uri = Uri.parse(apiUrl('/health'));

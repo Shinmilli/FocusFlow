@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/persistence/user_local_data_scope.dart';
@@ -9,10 +10,13 @@ class LocalFocusLogRepository {
   LocalFocusLogRepository({
     required this.storageScope,
     SharedPreferences? prefs,
+    this.onMutate,
   }) : _prefsFuture = prefs != null ? Future.value(prefs) : SharedPreferences.getInstance();
 
   /// null이면 메모리만 (비로그인 + API 사용 중).
   final String? storageScope;
+
+  final VoidCallback? onMutate;
 
   final Future<SharedPreferences> _prefsFuture;
 
@@ -54,6 +58,7 @@ class LocalFocusLogRepository {
     final next = [...all, event];
     final trimmed = next.length <= _maxEvents ? next : next.sublist(next.length - _maxEvents);
     await prefs.setString(key, jsonEncode(trimmed.map((e) => e.toJson()).toList()));
+    onMutate?.call();
   }
 
   Future<void> clear() async {

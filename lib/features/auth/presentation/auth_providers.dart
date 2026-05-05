@@ -27,6 +27,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final authControllerProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);
 
 class AuthController extends Notifier<AuthState> {
+  /// 로그인·가입 직후 홈(오늘의 프로젝트)에서 AI 오늘 계획을 한 번 띄울 때 사용.
+  bool _pendingAiTodayPlanOnHome = false;
+
   @override
   AuthState build() {
     if (!_repo.isApiConfigured) {
@@ -53,6 +56,7 @@ class AuthController extends Notifier<AuthState> {
   Future<AuthUser> login(String email, String password) async {
     final user = await _repo.login(email, password);
     state = AuthState.authenticated(user);
+    _pendingAiTodayPlanOnHome = true;
     _notifyRouter();
     return user;
   }
@@ -60,12 +64,21 @@ class AuthController extends Notifier<AuthState> {
   Future<AuthUser> register(String email, String password) async {
     final user = await _repo.register(email, password);
     state = AuthState.authenticated(user);
+    _pendingAiTodayPlanOnHome = true;
     _notifyRouter();
     return user;
   }
 
+  /// 홈에서 소비하면 false로 돌아감. 한 번만 true.
+  bool consumePendingAiTodayPlanOnHome() {
+    if (!_pendingAiTodayPlanOnHome) return false;
+    _pendingAiTodayPlanOnHome = false;
+    return true;
+  }
+
   Future<void> logout() async {
     await _repo.logout();
+    _pendingAiTodayPlanOnHome = false;
     state = const AuthState.unauthenticated();
     _notifyRouter();
   }

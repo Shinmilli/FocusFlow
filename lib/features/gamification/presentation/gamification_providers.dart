@@ -1,23 +1,29 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/persistence/user_local_data_scope.dart';
+import '../../sync/presentation/sync_providers.dart';
 import '../domain/player_progress.dart';
+import 'celebration_coordinator.dart';
 
 final playerProgressProvider =
     StateNotifierProvider<PlayerProgressNotifier, PlayerProgress>((ref) {
   final scope = ref.watch(userLocalDataStorageSuffixProvider);
-  return PlayerProgressNotifier(scope);
+  final sched = ref.watch(userSyncSchedulerProvider);
+  return PlayerProgressNotifier(ref, scope, onPersist: sched.schedulePush);
 });
 
 class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
-  PlayerProgressNotifier(this._storageScope) : super(const PlayerProgress()) {
+  PlayerProgressNotifier(this._ref, this._storageScope, {this.onPersist}) : super(const PlayerProgress()) {
     if (_storageScope != null) _load();
   }
 
+  final Ref _ref;
   final String? _storageScope;
+  final VoidCallback? onPersist;
 
   static const _kProgressBase = 'player.progress.v1';
 
@@ -46,6 +52,7 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
     if (key == null) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, jsonEncode(state.toJson()));
+    onPersist?.call();
   }
 
   String _todayKey() {
@@ -67,12 +74,13 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
   }
 
   void grantBlockComplete() {
+    final prev = state;
     final today = _todayKey();
     final prevLevel = state.level;
     final prevStreak = state.streakDays;
     var next = state.addXp(25);
 
-    // 스트릭: 하루에 블록 완료가 1번이라도 있으면 그날을 스트릭에 포함.
+    // 연속: 하루에 블록 완료가 1번이라도 있으면 그날을 연속 기록에 포함.
     if (next.lastStreakDateKey != today) {
       final last = _parseKey(next.lastStreakDateKey);
       final now = _parseKey(today);
@@ -112,5 +120,6 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
 
     state = next;
     _save();
+    _ref.read(celebrationCoordinatorProvider).onProgressGained(prev, next);
   }
 }

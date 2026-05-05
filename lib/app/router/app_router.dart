@@ -16,13 +16,16 @@ import '../../features/goals/presentation/goals_screen.dart';
 import '../../features/onboarding/presentation/onboarding_providers.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/planning/presentation/add_block_screen.dart';
+import '../../features/planning/presentation/planning_providers.dart';
 import '../../features/planning/presentation/planning_screen.dart';
 import '../../features/planning/presentation/today_select_screen.dart';
+import '../../features/planning/presentation/week_day_plan_edit_screen.dart';
 import '../../features/planning/presentation/week_select_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/flow_track/presentation/flow_track_screen.dart';
 import '../../features/user_state/presentation/user_context_screen.dart';
 import '../../features/user_state/presentation/daily_context_gate_providers.dart';
+import 'main_shell_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -36,9 +39,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
           state.matchedLocation == '/onboarding') {
-        return '/plan';
+        return '/';
       }
-      if (state.matchedLocation == '/') return '/plan';
       return null;
     }
 
@@ -66,11 +68,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         if (!ctxDone && state.matchedLocation != '/context' && state.matchedLocation != '/onboarding') {
           return '/context';
         }
-        if (state.matchedLocation == '/') return '/plan';
         if (state.matchedLocation == '/login' ||
             state.matchedLocation == '/register' ||
             state.matchedLocation == '/splash') {
-          return '/plan';
+          return '/';
         }
         return null;
     }
@@ -78,7 +79,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: kApiBaseUrlConfigured ? '/splash' : '/plan',
+    initialLocation: kApiBaseUrlConfigured ? '/splash' : '/',
     refreshListenable: refresh,
     redirect: redirectLogic,
     routes: [
@@ -98,9 +99,36 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const HomeScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainShellScreen(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/plan/week',
+                builder: (context, state) => const WeekSelectScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: '/plan',
@@ -111,12 +139,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const TodaySelectScreen(),
       ),
       GoRoute(
-        path: '/plan/week',
-        builder: (context, state) => const WeekSelectScreen(),
-      ),
-      GoRoute(
         path: '/plan/add',
         builder: (context, state) => const AddBlockScreen(),
+      ),
+      GoRoute(
+        path: '/plan/week/edit',
+        builder: (context, state) {
+          final raw = state.uri.queryParameters['date'];
+          final dateKey = (raw != null && raw.isNotEmpty) ? raw : todayDateKey();
+          return WeekDayPlanEditScreen(dateKey: dateKey);
+        },
       ),
       GoRoute(
         path: '/focus',
@@ -137,10 +169,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/goals',
         builder: (context, state) => const GoalsScreen(),
-      ),
-      GoRoute(
-        path: '/profile',
-        builder: (context, state) => const ProfileScreen(),
       ),
       GoRoute(
         path: '/flow-track',

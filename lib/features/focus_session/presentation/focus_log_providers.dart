@@ -1,12 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/persistence/user_local_data_scope.dart';
+import '../../sync/presentation/sync_providers.dart';
 import '../data/local_focus_log_repository.dart';
 import '../domain/focus_log_event.dart';
 
 final focusLogRepositoryProvider = Provider<LocalFocusLogRepository>((ref) {
   final scope = ref.watch(userLocalDataStorageSuffixProvider);
-  return LocalFocusLogRepository(storageScope: scope);
+  final sched = ref.watch(userSyncSchedulerProvider);
+  return LocalFocusLogRepository(
+    storageScope: scope,
+    onMutate: sched.schedulePush,
+  );
 });
 
 final focusLogEventsProvider = FutureProvider<List<FocusLogEvent>>((ref) async {

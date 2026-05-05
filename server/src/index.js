@@ -48,6 +48,13 @@ async function ensureSchema() {
   await pool.query(`
     ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname TEXT NOT NULL DEFAULT '';
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_app_sync (
+      user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
 }
 
 function signToken(userId, email) {
@@ -70,7 +77,7 @@ function authMiddleware(req, res, next) {
 }
 
 const app = express();
-app.use(express.json({ limit: "256kb" }));
+app.use(express.json({ limit: "1536kb" }));
 
 function normalizeOrigin(o) {
   return String(o || "")
@@ -182,6 +189,53 @@ app.get("/auth/me", authMiddleware, async (req, res) => {
   return res.json({
     user: { id: row.id, email: row.email, nickname: row.nickname ?? "", createdAt: row.created_at },
   });
+});
+
+/// 클라이언트 로컬 상태(블록·집중 로그·레벨·목표 등) — 기기 간 동기화.
+app.get("/sync/state", authMiddleware, async (req, res) => {
+  const { rows } = await pool.query(
+    "SELECT payload, updated_at FROM user_app_sync WHERE user_id = $1",
+    [req.user.id],
+  );
+  const row = rows[0];
+  if (!row) {
+    return res.json({
+      payload: {},
+      updatedAt: null,
+    });
+  }
+  return res.json({
+    payload: row.payload ?? {},
+    updatedAt: row.updated_at,
+  });
+});
+
+const MAX_FOCUS_EVENTS = 500;
+
+app.put("/sync/state", authMiddleware, async (req, res) => {
+  const body = req.body;
+  const payload = body && typeof body.payload === "object" && body.payload !== null ? body.payload : {};
+  const planningBlocks = payload.planningBlocks;
+  const focusEvents = payload.focusEvents;
+  if (Array.isArray(focusEvents) && focusEvents.length > MAX_FOCUS_EVENTS) {
+    return res.status(400).json({ error: `focusEvents must be at most ${MAX_FOCUS_EVENTS} items` });
+  }
+  if (planningBlocks != null && !Array.isArray(planningBlocks)) {
+    return res.status(400).json({ error: "planningBlocks must be an array when present" });
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO user_app_sync (user_id, payload, updated_at)
+       VALUES ($1, $2::jsonb, now())
+       ON CONFLICT (user_id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = now()`,
+      [req.user.id, JSON.stringify(payload)],
+    );
+  } catch (e) {
+    console.error("sync/state PUT error:", e);
+    return res.status(500).json({ error: "Failed to save sync state" });
+  }
+  return res.json({ ok: true });
 });
 
 app.patch("/user/profile", authMiddleware, async (req, res) => {
