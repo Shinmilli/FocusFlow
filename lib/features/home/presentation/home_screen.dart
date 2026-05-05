@@ -75,20 +75,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
     ];
 
-    final hero = TodayProjectHero(
+    final pinnedTitle = TodayProjectHeroPinnedTitleBar(
+      leadingActions: heroActions,
+    );
+    final headerExtent = TodayProjectHeroPinnedTitleBar.scrollExtent(context);
+
+    final heroScrollBody = TodayProjectHeroScrollBody(
       progress: progress,
       lowEnergy: lowEnergy,
       onStartFocus: () => context.push('/focus'),
-      leadingActions: heroActions,
     );
-    final headerExtent = TodayProjectHero.pinnedScrollExtent(context);
 
     Widget scrollHome(List<Widget> bodySlivers) {
       return CustomScrollView(
         slivers: [
           SliverPersistentHeader(
             pinned: true,
-            delegate: _HomePinnedHeroDelegate(extent: headerExtent, child: hero),
+            delegate: _HomePinnedHeroDelegate(extent: headerExtent, child: pinnedTitle),
           ),
           ...bodySlivers,
         ],
@@ -96,13 +99,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return asyncBlocks.when(
-      loading: () => scrollHome(const [
-        SliverFillRemaining(
+      loading: () => scrollHome([
+        SliverToBoxAdapter(child: heroScrollBody),
+        const SliverFillRemaining(
           hasScrollBody: false,
           child: Center(child: CircularProgressIndicator()),
         ),
       ]),
       error: (e, _) => scrollHome([
+        SliverToBoxAdapter(child: heroScrollBody),
         SliverFillRemaining(
           hasScrollBody: false,
           child: Center(child: Text('$e')),
@@ -111,6 +116,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       data: (blocks) {
         final list = _orderedBlocks(blocks);
         return scrollHome([
+          SliverToBoxAdapter(child: heroScrollBody),
           if (list.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
@@ -161,7 +167,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             )
           else ...[
-            const SliverToBoxAdapter(child: SizedBox(height: 4)),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
               sliver: SliverMasonryGrid.count(
@@ -218,7 +223,12 @@ class _HomePinnedHeroDelegate extends SliverPersistentHeaderDelegate {
     return SizedBox(
       height: extent,
       width: double.infinity,
-      child: ClipRect(child: child),
+      child: Material(
+        color: Colors.transparent,
+        elevation: shrinkOffset > 0 ? 3 : 0,
+        shadowColor: Colors.black26,
+        child: ClipRect(child: child),
+      ),
     );
   }
 
