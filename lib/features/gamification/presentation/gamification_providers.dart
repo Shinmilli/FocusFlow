@@ -26,10 +26,18 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
   final VoidCallback? onPersist;
 
   static const _kProgressBase = 'player.progress.v1';
+  static const _kRewardedBlocksBase = 'player.progress.rewardedBlocks.v2';
 
   String? get _kProgress => _storageScope == null
       ? null
       : scopedPreferenceKey(_kProgressBase, _storageScope);
+
+  String? get _kRewardedBlocks => _storageScope == null
+      ? null
+      : scopedPreferenceKey(_kRewardedBlocksBase, _storageScope);
+
+  /// dateKey(yyyy-MM-dd) -> rewarded block ids for that day.
+  final Map<String, Set<String>> _rewardedBlockIdsByDay = <String, Set<String>>{};
 
   Future<void> _load() async {
     final key = _kProgress;
@@ -45,6 +53,30 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
     } catch (_) {
       // ignore corrupted state
     }
+
+    // Load rewarded block ids by day (idempotent per day for block completion).
+    final rewardKey = _kRewardedBlocks;
+    if (rewardKey == null) return;
+    final rewardRaw = prefs.getString(rewardKey);
+    if (rewardRaw == null || rewardRaw.trim().isEmpty) return;
+    try {
+      final decoded = jsonDecode(rewardRaw);
+      _rewardedBlockIdsByDay.clear();
+      if (decoded is Map) {
+        for (final entry in decoded.entries) {
+          final k = entry.key?.toString() ?? '';
+          final v = entry.value;
+          if (k.isEmpty || v is! List) continue;
+          _rewardedBlockIdsByDay[k] = v.whereType<String>().where((s) => s.trim().isNotEmpty).toSet();
+        }
+      } else if (decoded is List) {
+        // Migration: v1 stored a flat list (once ever). Treat as "rewarded today" so toggling still idempotent.
+        final today = _todayKey();
+        _rewardedBlockIdsByDay[today] = decoded.whereType<String>().where((s) => s.trim().isNotEmpty).toSet();
+      }
+    } catch (_) {
+      // ignore corrupted state
+    }
   }
 
   Future<void> _save() async {
@@ -52,6 +84,13 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
     if (key == null) return;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, jsonEncode(state.toJson()));
+    final rewardKey = _kRewardedBlocks;
+    if (rewardKey != null) {
+      final enc = <String, List<String>>{
+        for (final e in _rewardedBlockIdsByDay.entries) e.key: e.value.toList(),
+      };
+      await prefs.setString(rewardKey, jsonEncode(enc));
+    }
     onPersist?.call();
   }
 
@@ -73,9 +112,16 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
     return DateTime(y, m, d);
   }
 
-  void grantBlockComplete() {
-    final prev = state;
+  void grantBlockComplete({required String blockId}) {
+    final id = blockId.trim();
+    if (id.isEmpty) return;
+
+    // If this block has already granted XP today, do nothing (even if user toggles done off/on).
     final today = _todayKey();
+    final rewardedToday = _rewardedBlockIdsByDay[today] ?? <String>{};
+    if (rewardedToday.contains(id)) return;
+
+    final prev = state;
     final prevLevel = state.level;
     final prevStreak = state.streakDays;
     var next = state.addXp(25);
@@ -118,6 +164,8 @@ class PlayerProgressNotifier extends StateNotifier<PlayerProgress> {
       next = next.unlockBadge('레벨 5');
     }
 
+    // Record reward for today only.
+    _rewardedBlockIdsByDay[today] = {...rewardedToday, id};
     state = next;
     _save();
     _ref.read(celebrationCoordinatorProvider).onProgressGained(prev, next);

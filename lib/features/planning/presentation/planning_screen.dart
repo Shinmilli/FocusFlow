@@ -253,7 +253,7 @@ class PlanningScreen extends ConsumerWidget {
               ref.invalidate(backlogBlocksProvider);
               ref.invalidate(canAddNewBlockProvider);
               if (!wasAllDone && nowAllDone) {
-                ref.read(playerProgressProvider.notifier).grantBlockComplete();
+                ref.read(playerProgressProvider.notifier).grantBlockComplete(blockId: b.id);
                 await ref.read(focusLogRepositoryProvider).append(
                       FocusLogEvent(
                         type: FocusLogEventType.blockCompleted,
