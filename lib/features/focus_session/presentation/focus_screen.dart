@@ -243,6 +243,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                             ),
                       ),
                     ] else ...[
+                      const SizedBox(height: 12),
                       Center(
                         child: SegmentedButton<int>(
                           segments: const [
@@ -262,7 +263,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                                 },
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 18),
                       Text(
                         headline,
                         textAlign: TextAlign.center,
@@ -277,7 +278,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                         centerLabel: _onBreak ? _format(_breakRemainingSec) : _format(_remainingSec),
                         centerColor: _onBreak ? breakCenterColor : null,
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 30),
                       DecoratedBox(
                         decoration: AppChrome.softCardDecoration(),
                         child: Padding(
@@ -404,8 +405,12 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
       );
     }
     return FilledButton(
-      style: AppChrome.primaryActionNavyStyle.copyWith(
-        minimumSize: const WidgetStatePropertyAll(Size.fromHeight(52)),
+      style: FilledButton.styleFrom(
+        backgroundColor: const Color(0xFFE52D3D),
+        foregroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
       ),
       onPressed: _beginCountdownThenRun,
       child: const Text('강제시작'),
