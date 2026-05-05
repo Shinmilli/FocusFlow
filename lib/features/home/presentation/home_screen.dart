@@ -9,6 +9,7 @@ import '../../auth/domain/auth_state.dart';
 import '../../gamification/presentation/gamification_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import '../../auth/presentation/auth_providers.dart';
+import '../../flow_track/presentation/flow_track_providers.dart';
 import '../../planning/domain/task_block.dart';
 import '../../planning/presentation/planning_providers.dart';
 import '../../planning/presentation/planning_screen.dart';
@@ -49,6 +50,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final ctx = ref.watch(userLifeContextProvider);
     final lowEnergy = ctx.sleepHours < 6 || ctx.stressLevel >= 4;
     final asyncBlocks = ref.watch(todayBlocksProvider);
+    final segs = ref.watch(flowWeekSegmentsProvider).valueOrNull;
+    final tierEn = (segs != null && segs.isNotEmpty) ? segs.last.tier : 'Iron';
 
     void refreshHome() {
       ref.invalidate(playerProgressProvider);
@@ -84,6 +87,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       progress: progress,
       lowEnergy: lowEnergy,
       onStartFocus: () => context.push('/focus'),
+      tierEn: tierEn,
+      onTapTier: () => context.push('/flow'),
     );
 
     Widget scrollHome(List<Widget> bodySlivers) {

@@ -44,9 +44,15 @@ class TodayProjectHeroPinnedTitleBar extends StatelessWidget {
 }
 
 class _HeroLevelStatsSection extends StatelessWidget {
-  const _HeroLevelStatsSection({required this.progress});
+  const _HeroLevelStatsSection({
+    required this.progress,
+    required this.tierEn,
+    this.onTapTier,
+  });
 
   final PlayerProgress progress;
+  final String tierEn;
+  final VoidCallback? onTapTier;
 
   static const _trackBg = Color(0xFF2E323C);
   static const _muted = Color(0xFFB8BCC8);
@@ -60,6 +66,46 @@ class _HeroLevelStatsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTapTier,
+              borderRadius: BorderRadius.circular(999),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 2, 10, 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.military_tech_rounded,
+                      size: 16,
+                      color: Colors.white.withValues(alpha: 0.88),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      tierEn,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        height: 1.0,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: Colors.white.withValues(alpha: 0.72),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
@@ -145,11 +191,15 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
     required this.progress,
     required this.lowEnergy,
     required this.onStartFocus,
+    this.tierEn = 'Iron',
+    this.onTapTier,
   });
 
   final PlayerProgress progress;
   final bool lowEnergy;
   final VoidCallback onStartFocus;
+  final String tierEn;
+  final VoidCallback? onTapTier;
 
   static const _cardBg = Color(0xFF1F212A);
   static const _accentRed = Color(0xFFE52D3D);
@@ -179,7 +229,11 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(22, 14, 22, 52),
-                  child: _HeroLevelStatsSection(progress: progress),
+                  child: _HeroLevelStatsSection(
+                    progress: progress,
+                    tierEn: tierEn,
+                    onTapTier: onTapTier,
+                  ),
                 ),
               ),
               const SizedBox(height: _hitExtendBelowCard),
@@ -320,7 +374,7 @@ class TodayProjectHero extends StatelessWidget {
                           leadingActions: leadingActions,
                         ),
                         const SizedBox(height: 22),
-                        _HeroLevelStatsSection(progress: progress),
+                        _HeroLevelStatsSection(progress: progress, tierEn: 'Iron'),
                       ],
                     ),
                   ),
