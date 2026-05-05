@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../app/theme/app_chrome.dart';
 import '../../ai_agent/presentation/ai_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import '../domain/task_block.dart';
@@ -117,7 +118,12 @@ class _AddBlockScreenState extends ConsumerState<AddBlockScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('새 블록 추가')),
+      appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('새 블록 추가'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

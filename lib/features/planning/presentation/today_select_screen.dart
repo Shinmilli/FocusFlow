@@ -25,6 +25,9 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
         title: const Text('오늘 선택'),
       ),
       body: asyncToday.when(

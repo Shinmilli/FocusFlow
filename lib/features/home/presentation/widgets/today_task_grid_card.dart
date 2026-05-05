@@ -153,7 +153,7 @@ class TodayTaskGridCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 4, 0),
+            padding: const EdgeInsets.fromLTRB(8, 3, 4, 0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -164,7 +164,7 @@ class TodayTaskGridCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       child: Text(
                         '현재작업',
                         style: TextStyle(
@@ -178,7 +178,7 @@ class TodayTaskGridCard extends StatelessWidget {
                   ),
                 const Spacer(),
                 PopupMenuButton<String>(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                   iconSize: 22,
                   splashRadius: 22,

@@ -13,7 +13,7 @@ abstract final class AppChrome {
   static const Color primaryActionNavy = Color(0xFF2E3548);
 
   /// 집중 모드·이번 주 조정·프로필 등 상단 앱바 (남색 배경·흰 글자).
-  static const Color topBarBackground = primaryActionNavy;
+  static const Color topBarBackground = heroCardDark;
   static const Color topBarForeground = Colors.white;
 
   static final ButtonStyle primaryActionNavyStyle = FilledButton.styleFrom(

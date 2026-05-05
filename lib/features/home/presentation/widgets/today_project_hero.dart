@@ -159,7 +159,7 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
   static const double _hitExtendBelowCard = 54;
   static const double _focusButtonBottomOffset = -10;
   /// 아래 카드와 버튼 영역 여백 — 줄일수록 카드가 더 위로 붙음.
-  static const double _heroBottomPadding = 80;
+  static const double _heroBottomPadding = 64;
 
   @override
   Widget build(BuildContext context) {

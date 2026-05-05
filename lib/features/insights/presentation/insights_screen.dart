@@ -21,6 +21,9 @@ class InsightsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppChrome.pageBackground,
       appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
         title: const Text('기록/통계'),
         actions: [
           IconButton(

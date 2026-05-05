@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/theme/app_chrome.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import 'onboarding_providers.dart';
 
@@ -37,6 +38,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
         title: const Text('시작하기'),
         automaticallyImplyLeading: false,
       ),

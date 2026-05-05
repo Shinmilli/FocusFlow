@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/app_chrome.dart';
 import '../../gamification/domain/badge_catalog.dart';
 import '../../gamification/domain/player_progress.dart';
 import '../../gamification/presentation/gamification_providers.dart';
@@ -60,6 +61,9 @@ class _FlowTrackScreenState extends ConsumerState<FlowTrackScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FB),
       appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
         title: const Text('플로우 트랙'),
         actions: [
           IconButton(

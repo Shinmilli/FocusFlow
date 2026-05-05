@@ -38,7 +38,12 @@ class _UserContextScreenState extends ConsumerState<UserContextScreen> {
 
     return Scaffold(
       backgroundColor: AppChrome.pageBackground,
-      appBar: AppBar(title: const Text('오늘 상태')),
+      appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('오늘 상태'),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [

@@ -73,6 +73,9 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     return Scaffold(
       backgroundColor: AppChrome.pageBackground,
       appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
         title: const Text('목표'),
         actions: [
           TextButton(

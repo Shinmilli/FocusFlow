@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/theme/app_chrome.dart';
 import 'mcp_providers.dart';
 
 class McpConnectionsScreen extends ConsumerWidget {
@@ -11,7 +12,12 @@ class McpConnectionsScreen extends ConsumerWidget {
     final bridge = ref.watch(mcpBridgeProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('외부 도구 (MCP 데모)')),
+      appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('외부 도구 (MCP 데모)'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
