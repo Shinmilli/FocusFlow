@@ -153,10 +153,30 @@ class TodayTaskGridCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+            padding: const EdgeInsets.fromLTRB(8, 6, 4, 0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                if (current && !complete)
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: primary.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Text(
+                        '현재작업',
+                        style: TextStyle(
+                          color: primary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                const Spacer(),
                 PopupMenuButton<String>(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
@@ -213,21 +233,6 @@ class TodayTaskGridCard extends StatelessWidget {
                     return entries;
                   },
                 ),
-                if (onSparkle != null)
-                  IconButton(
-                    padding: const EdgeInsets.all(8),
-                    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: onSparkle,
-                    icon: Icon(
-                      Icons.auto_awesome,
-                      size: 20,
-                      color: current && !complete
-                          ? Colors.white.withValues(alpha: 0.92)
-                          : bodyColor.withValues(alpha: 0.92),
-                    ),
-                    tooltip: 'AI',
-                  ),
               ],
             ),
           ),
@@ -256,25 +261,21 @@ class TodayTaskGridCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (current && !complete) ...[
-                        const SizedBox(width: 8),
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.22),
-                            borderRadius: BorderRadius.circular(20),
+                      if (onSparkle != null) ...[
+                        const SizedBox(width: 2),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                          onPressed: onSparkle,
+                          icon: Icon(
+                            Icons.auto_awesome,
+                            size: 20,
+                            color: current && !complete
+                                ? Colors.white.withValues(alpha: 0.92)
+                                : bodyColor.withValues(alpha: 0.92),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            child: Text(
-                              '현재작업',
-                              style: TextStyle(
-                                color: primary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                height: 1,
-                              ),
-                            ),
-                          ),
+                          tooltip: 'AI',
                         ),
                       ],
                     ],

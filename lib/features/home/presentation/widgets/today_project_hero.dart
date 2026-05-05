@@ -30,8 +30,12 @@ class TodayProjectHero extends StatelessWidget {
 
   static const double _focusButtonInset = 88;
   static const double _focusButtonHeight = 82;
-  /// Stack hitTest가 카드 아래로 나간 버튼 영역까지 포함하도록 남기는 여백.
-  static const double _hitExtendBelowCard = 24;
+  /// 카드 본문과 버튼 사이에 두는 여백 — 클수록 버튼이 더 아래로 내려감.
+  static const double _hitExtendBelowCard = 72;
+  /// 버튼 하단을 Stack 기준선보다 더 내림(시각적으로 더 아래).
+  static const double _focusButtonBottomOffset = -18;
+  /// 버튼이 Stack 밖으로 내려가는 만큼 + 여유(아래 콘텐츠와 겹침 방지).
+  static const double _heroBottomPadding = 118;
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +44,7 @@ class TodayProjectHero extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 78),
+      padding: const EdgeInsets.only(bottom: _heroBottomPadding),
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.topCenter,
@@ -171,7 +175,7 @@ class TodayProjectHero extends StatelessWidget {
           Positioned(
             left: _focusButtonInset,
             right: _focusButtonInset,
-            bottom: 0,
+            bottom: _focusButtonBottomOffset,
             height: _focusButtonHeight,
             child: Material(
               color: _accentRed,
