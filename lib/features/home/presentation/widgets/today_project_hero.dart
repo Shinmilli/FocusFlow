@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../flow_track/presentation/flow_track_tier_style.dart';
 import '../../../gamification/domain/player_progress.dart';
 
 /// 상단에 고정되는 한 줄: 제목 + 우측 액션 (레벨·집중 시작 제외).
@@ -62,6 +63,8 @@ class _HeroLevelStatsSection extends StatelessWidget {
     final need = PlayerProgress.xpForLevel(progress.level);
     final ratio = need == 0 ? 0.0 : progress.xp / need;
     final primary = Theme.of(context).colorScheme.primary;
+    final tierBg = FlowTrackTierStyle.accent(tierEn);
+    final tierFg = FlowTrackTierStyle.onAccent(tierBg);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -73,34 +76,33 @@ class _HeroLevelStatsSection extends StatelessWidget {
             child: InkWell(
               onTap: onTapTier,
               borderRadius: BorderRadius.circular(999),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 2, 10, 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.military_tech_rounded,
-                      size: 16,
-                      color: Colors.white.withValues(alpha: 0.88),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      tierEn,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        height: 1.0,
-                        letterSpacing: -0.1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: tierBg.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: tierFg.withValues(alpha: 0.9)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.military_tech_rounded, size: 16, color: tierFg),
+                      const SizedBox(width: 6),
+                      Text(
+                        tierEn,
+                        style: TextStyle(
+                          color: tierFg,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          height: 1.0,
+                          letterSpacing: -0.1,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: Colors.white.withValues(alpha: 0.72),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      Icon(Icons.chevron_right_rounded, size: 18, color: tierFg.withValues(alpha: 0.85)),
+                    ],
+                  ),
                 ),
               ),
             ),

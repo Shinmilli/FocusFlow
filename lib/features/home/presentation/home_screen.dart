@@ -88,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       lowEnergy: lowEnergy,
       onStartFocus: () => context.push('/focus'),
       tierEn: tierEn,
-      onTapTier: () => context.push('/flow'),
+      onTapTier: () => context.push('/flow-track'),
     );
 
     Widget scrollHome(List<Widget> bodySlivers) {
