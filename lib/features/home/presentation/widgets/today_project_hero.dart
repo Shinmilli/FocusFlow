@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../gamification/domain/player_progress.dart';
@@ -30,12 +32,22 @@ class TodayProjectHero extends StatelessWidget {
 
   static const double _focusButtonInset = 88;
   static const double _focusButtonHeight = 82;
-  /// 카드 본문과 버튼 사이에 두는 여백 — 클수록 버튼이 더 아래로 내려감.
-  static const double _hitExtendBelowCard = 72;
-  /// 버튼 하단을 Stack 기준선보다 더 내림(시각적으로 더 아래).
-  static const double _focusButtonBottomOffset = -18;
+  /// 카드 본문과 버튼 사이에 두는 여백 — 클수록 버튼이 더 아래로 내려감(작게 할수록 레벨 배경과 겹침).
+  static const double _hitExtendBelowCard = 54;
+  /// 버튼 하단을 Stack 기준선보다 더 내림(덜 음수일수록 버튼이 위로).
+  static const double _focusButtonBottomOffset = -10;
   /// 버튼이 Stack 밖으로 내려가는 만큼 + 여유(아래 콘텐츠와 겹침 방지).
-  static const double _heroBottomPadding = 118;
+  static const double _heroBottomPadding = 102;
+
+  /// 다크 카드 내부 컬럼(타이틀~통계) + 안쪽 패딩 — [build] 레이아웃과 동일 길이를 유지할 것.
+  static const double _pinnedInnerColumnHeight =
+      52 + 22 + 67 + 20 + 18 + 8 + 52;
+
+  /// 홈 상단 히어로를 `SliverPersistentHeader(pinned: true)`에 쓸 때의 세로 길이.
+  static double pinnedScrollExtent(BuildContext context) {
+    final safeTop = math.max(MediaQuery.paddingOf(context).top, 4.0);
+    return safeTop + _pinnedInnerColumnHeight + _hitExtendBelowCard + _heroBottomPadding;
+  }
 
   @override
   Widget build(BuildContext context) {
