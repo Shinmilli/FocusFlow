@@ -243,7 +243,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                             ),
                       ),
                     ] else ...[
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 25),
                       Center(
                         child: SegmentedButton<int>(
                           segments: const [
@@ -263,7 +263,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                                 },
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 25),
                       Text(
                         headline,
                         textAlign: TextAlign.center,
@@ -272,13 +272,13 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                               fontWeight: FontWeight.w700,
                             ),
                       ),
-                      const SizedBox(height: 22),
+                      const SizedBox(height: 40),
                       TimeFlowRing(
                         progress: ringProgress.clamp(0.0, 1.0),
                         centerLabel: _onBreak ? _format(_breakRemainingSec) : _format(_remainingSec),
                         centerColor: _onBreak ? breakCenterColor : null,
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 40),
                       DecoratedBox(
                         decoration: AppChrome.softCardDecoration(),
                         child: Padding(
