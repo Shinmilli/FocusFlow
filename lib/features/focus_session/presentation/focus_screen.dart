@@ -271,13 +271,13 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                               fontWeight: FontWeight.w700,
                             ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 22),
                       TimeFlowRing(
                         progress: ringProgress.clamp(0.0, 1.0),
                         centerLabel: _onBreak ? _format(_breakRemainingSec) : _format(_remainingSec),
                         centerColor: _onBreak ? breakCenterColor : null,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 22),
                       DecoratedBox(
                         decoration: AppChrome.softCardDecoration(),
                         child: Padding(

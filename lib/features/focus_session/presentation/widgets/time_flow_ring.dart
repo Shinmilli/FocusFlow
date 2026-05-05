@@ -14,6 +14,8 @@ class TimeFlowRing extends StatelessWidget {
   final String centerLabel;
   final Color? centerColor;
 
+  static const double kDefaultSize = 260;
+
   @override
   Widget build(BuildContext context) {
     final p = progress.clamp(0.0, 1.0);
@@ -22,7 +24,8 @@ class TimeFlowRing extends StatelessWidget {
           fontWeight: FontWeight.w800,
         );
     return SizedBox(
-      height: 200,
+      height: kDefaultSize,
+      width: kDefaultSize,
       child: CustomPaint(
         painter: _RingPainter(p, AppChrome.heroAccentBlue),
         child: Center(
