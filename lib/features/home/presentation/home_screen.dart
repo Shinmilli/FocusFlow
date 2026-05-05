@@ -67,15 +67,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         icon: Icon(Icons.refresh, color: Colors.white.withOpacity(0.92)),
         visualDensity: VisualDensity.compact,
       ),
-      if (kApiBaseUrlConfigured)
-        IconButton(
-          tooltip: '로그아웃',
-          onPressed: () async {
-            await ref.read(authControllerProvider.notifier).logout();
-          },
-          icon: Icon(Icons.logout, color: Colors.white.withOpacity(0.92)),
-          visualDensity: VisualDensity.compact,
-        ),
     ];
 
     final pinnedTitle = TodayProjectHeroPinnedTitleBar(

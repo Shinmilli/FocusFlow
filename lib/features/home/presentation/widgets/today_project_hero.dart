@@ -293,6 +293,16 @@ class _TodayProjectHeroTitleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final base = Theme.of(context).appBarTheme.titleTextStyle ??
+        Theme.of(context).textTheme.titleLarge ??
+        const TextStyle(fontSize: 17, fontWeight: FontWeight.w600);
+    final titleStyle = base.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.2,
+      height: 1.15,
+    );
+
     return SizedBox(
       height: 52,
       child: Stack(
@@ -300,12 +310,7 @@ class _TodayProjectHeroTitleRow extends StatelessWidget {
         children: [
           Text(
             heroTitle,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.2,
-            ),
+            style: titleStyle,
           ),
           if (leadingActions.isNotEmpty)
             Align(
