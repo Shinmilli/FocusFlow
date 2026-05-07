@@ -111,7 +111,8 @@ class WeekDayPlanEditScreen extends ConsumerWidget {
                         maxReached: false,
                         variant: TodayPickTileVariant.weekPlan,
                         onDelete: () => _confirmDeleteBlock(context, ref, b),
-                        onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+                        onEditChecklist: () => _editBacklogChecklist(context, ref, dateKey, b),
+                        onMoveToTodoList: () => _moveToTodoList(context, ref, dateKey, b),
                         onChanged: (next) => _onPickChanged(context, ref, b, selected, next),
                       ),
                   const SizedBox(height: 16),
@@ -137,7 +138,8 @@ class WeekDayPlanEditScreen extends ConsumerWidget {
                         maxReached: false,
                         variant: TodayPickTileVariant.weekPlan,
                         onDelete: () => _confirmDeleteBlock(context, ref, b),
-                        onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+                        onEditChecklist: () => _editBacklogChecklist(context, ref, dateKey, b),
+                        onMoveToDoneList: () => _moveToDoneList(context, ref, dateKey, b),
                         onChanged: (next) => _onPickChanged(context, ref, b, selected, next),
                       ),
                   const SizedBox(height: 20),
@@ -164,7 +166,7 @@ class WeekDayPlanEditScreen extends ConsumerWidget {
                         disabled: false,
                         maxReached: false,
                         variant: TodayPickTileVariant.weekPlan,
-                        onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+                        onEditChecklist: () => _editBacklogChecklist(context, ref, dateKey, b),
                         onDelete: () => _confirmDeleteBlock(context, ref, b),
                         onChanged: (next) => _onPickChanged(context, ref, b, selected, next),
                       ),
@@ -245,7 +247,25 @@ class WeekDayPlanEditScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _editBacklogChecklist(BuildContext context, WidgetRef ref, TaskBlock block) async {
+  Future<void> _moveToDoneList(BuildContext context, WidgetRef ref, String dateKey, TaskBlock block) async {
+    await ref.read(planningRepositoryProvider).setPlanBlockFullyCompleteForDate(dateKey, block.id, true);
+    _invalidateWeekAround(ref, dateKey);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('끝낸 리스트로 옮겼어요.')),
+    );
+  }
+
+  Future<void> _moveToTodoList(BuildContext context, WidgetRef ref, String dateKey, TaskBlock block) async {
+    await ref.read(planningRepositoryProvider).setPlanBlockFullyCompleteForDate(dateKey, block.id, false);
+    _invalidateWeekAround(ref, dateKey);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('할 리스트로 옮겼어요.')),
+    );
+  }
+
+  Future<void> _editBacklogChecklist(BuildContext context, WidgetRef ref, String dateKey, TaskBlock block) async {
     final controllers = block.units
         .take(4)
         .map((u) => TextEditingController(text: u.title))
@@ -352,7 +372,7 @@ class WeekDayPlanEditScreen extends ConsumerWidget {
         nextUnits.add(TaskUnit(id: uuid.v4(), title: raw[i]));
       }
     }
-    await ref.read(planningRepositoryProvider).updateBlock(block.copyWith(units: nextUnits));
+    await ref.read(planningRepositoryProvider).upsertPlanBlockForDate(dateKey, block.copyWith(units: nextUnits));
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(blocksForDateProvider(dateKey));
     ref.invalidate(backlogForDateProvider(dateKey));

@@ -153,7 +153,8 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
                     maxReached: false,
                     variant: TodayPickTileVariant.weekPlan,
                     onDelete: () => _confirmDeleteBlock(context, ref, b),
-                    onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+                    onEditChecklist: () => _editBacklogChecklist(context, ref, selectedKey, b),
+                    onMoveToTodoList: () => _moveToTodoList(context, ref, selectedKey, b),
                     onChanged: (next) => _onPickChanged(
                       context,
                       ref,
@@ -191,7 +192,8 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
                     maxReached: false,
                     variant: TodayPickTileVariant.weekPlan,
                     onDelete: () => _confirmDeleteBlock(context, ref, b),
-                    onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+                    onEditChecklist: () => _editBacklogChecklist(context, ref, selectedKey, b),
+                    onMoveToDoneList: () => _moveToDoneList(context, ref, selectedKey, b),
                     onChanged: (next) => _onPickChanged(
                       context,
                       ref,
@@ -260,6 +262,24 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     ref.invalidate(canAddNewBlockProvider);
   }
 
+  Future<void> _moveToDoneList(BuildContext context, WidgetRef ref, String dateKey, TaskBlock block) async {
+    await ref.read(planningRepositoryProvider).setPlanBlockFullyCompleteForDate(dateKey, block.id, true);
+    _invalidateWeekAround(ref, _selectedDay);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('끝낸 리스트로 옮겼어요.')),
+    );
+  }
+
+  Future<void> _moveToTodoList(BuildContext context, WidgetRef ref, String dateKey, TaskBlock block) async {
+    await ref.read(planningRepositoryProvider).setPlanBlockFullyCompleteForDate(dateKey, block.id, false);
+    _invalidateWeekAround(ref, _selectedDay);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('할 리스트로 옮겼어요.')),
+    );
+  }
+
   Future<void> _confirmDeleteBlock(BuildContext context, WidgetRef ref, TaskBlock block) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -291,7 +311,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     );
   }
 
-  Future<void> _editBacklogChecklist(BuildContext context, WidgetRef ref, TaskBlock block) async {
+  Future<void> _editBacklogChecklist(BuildContext context, WidgetRef ref, String dateKey, TaskBlock block) async {
     final controllers = block.units
         .take(4)
         .map((u) => TextEditingController(text: u.title))
@@ -398,7 +418,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
         nextUnits.add(TaskUnit(id: uuid.v4(), title: raw[i]));
       }
     }
-    await ref.read(planningRepositoryProvider).updateBlock(block.copyWith(units: nextUnits));
+    await ref.read(planningRepositoryProvider).upsertPlanBlockForDate(dateKey, block.copyWith(units: nextUnits));
     ref.invalidate(todayBlocksProvider);
     ref.invalidate(blocksForDateProvider(_dateKey(_selectedDay)));
     ref.invalidate(backlogForDateProvider(_dateKey(_selectedDay)));

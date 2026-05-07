@@ -49,11 +49,15 @@ class _HeroLevelStatsSection extends StatelessWidget {
     required this.progress,
     required this.tierEn,
     this.onTapTier,
+    this.advice,
+    this.showNumericStats = true,
   });
 
   final PlayerProgress progress;
   final String tierEn;
   final VoidCallback? onTapTier;
+  final Widget? advice;
+  final bool showNumericStats;
 
   static const _trackBg = Color(0xFF2E323C);
   static const _muted = Color(0xFFB8BCC8);
@@ -69,6 +73,10 @@ class _HeroLevelStatsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (advice != null) ...[
+          advice!,
+          const SizedBox(height: 12),
+        ],
         Align(
           alignment: Alignment.centerLeft,
           child: Material(
@@ -149,38 +157,42 @@ class _HeroLevelStatsSection extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              if (showNumericStats) ...[
+                const SizedBox(width: 12),
+                Text(
+                  '${progress.xp}/$need',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (showNumericStats) ...[
+          const SizedBox(height: 20),
+          Row(
+            children: [
               Text(
-                '${progress.xp}/$need',
-                style: const TextStyle(
-                  color: _muted,
+                '연속 ${progress.streakDays}일',
+                style: TextStyle(
+                  color: _muted.withValues(alpha: 0.95),
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 18),
+              Text(
+                '누적 ${progress.totalBlocksCompleted}블록',
+                style: TextStyle(
+                  color: _muted.withValues(alpha: 0.95),
+                  fontSize: 13,
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Text(
-              '연속 ${progress.streakDays}일',
-              style: TextStyle(
-                color: _muted.withValues(alpha: 0.95),
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(width: 18),
-            Text(
-              '누적 ${progress.totalBlocksCompleted}블록',
-              style: TextStyle(
-                color: _muted.withValues(alpha: 0.95),
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
+        ],
       ],
     );
   }
@@ -195,6 +207,8 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
     required this.onStartFocus,
     this.tierEn = 'Iron',
     this.onTapTier,
+    this.aiAdvice,
+    this.showNumericStats = true,
   });
 
   final PlayerProgress progress;
@@ -202,12 +216,15 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
   final VoidCallback onStartFocus;
   final String tierEn;
   final VoidCallback? onTapTier;
+  final String? aiAdvice;
+  final bool showNumericStats;
 
   static const _cardBg = Color(0xFF1F212A);
   static const _accentRed = Color(0xFFE52D3D);
 
   static const double _focusButtonInset = 88;
   static const double _focusButtonHeight = 82;
+  static const double _focusButtonMaxWidth = 360;
   static const double _hitExtendBelowCard = 54;
   static const double _focusButtonBottomOffset = -4;
   /// 아래 카드와 버튼 영역 여백 — 줄일수록 카드가 더 위로 붙음.
@@ -235,6 +252,17 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
                     progress: progress,
                     tierEn: tierEn,
                     onTapTier: onTapTier,
+                    showNumericStats: showNumericStats,
+                    advice: aiAdvice == null
+                        ? null
+                        : Text(
+                            aiAdvice!,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.2,
+                                ),
+                          ),
                   ),
                 ),
               ),
@@ -242,35 +270,43 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
             ],
           ),
           Positioned(
-            left: _focusButtonInset,
-            right: _focusButtonInset,
+            left: 0,
+            right: 0,
             bottom: _focusButtonBottomOffset,
             height: _focusButtonHeight,
-            child: Material(
-              color: _accentRed,
-              elevation: 4,
-              shadowColor: Colors.black26,
-              borderRadius: BorderRadius.circular(12),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: onStartFocus,
-                child: SizedBox.expand(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.timer_outlined, size: 28, color: Colors.white),
-                      const SizedBox(width: 10),
-                      Text(
-                        lowEnergy ? '딱 5분만 시작' : '집중 시작',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.25,
-                          height: 1.1,
-                          color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _focusButtonInset),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _focusButtonMaxWidth),
+                  child: Material(
+                    color: _accentRed,
+                    elevation: 4,
+                    shadowColor: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: onStartFocus,
+                      child: SizedBox.expand(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 28, color: Colors.white),
+                            const SizedBox(width: 10),
+                            Text(
+                              lowEnergy ? '딱 5분만 시작' : '집중 시작',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.25,
+                                height: 1.1,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -348,6 +384,7 @@ class TodayProjectHero extends StatelessWidget {
 
   static const double _focusButtonInset = 88;
   static const double _focusButtonHeight = 82;
+  static const double _focusButtonMaxWidth = 360;
   static const double _hitExtendBelowCard = 54;
   static const double _focusButtonBottomOffset = -10;
   static const double _heroBottomPadding = 102;
@@ -391,35 +428,43 @@ class TodayProjectHero extends StatelessWidget {
             ],
           ),
           Positioned(
-            left: _focusButtonInset,
-            right: _focusButtonInset,
+            left: 0,
+            right: 0,
             bottom: _focusButtonBottomOffset,
             height: _focusButtonHeight,
-            child: Material(
-              color: _accentRed,
-              elevation: 4,
-              shadowColor: Colors.black26,
-              borderRadius: BorderRadius.circular(12),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: onStartFocus,
-                child: SizedBox.expand(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.timer_outlined, size: 28, color: Colors.white),
-                      const SizedBox(width: 10),
-                      Text(
-                        lowEnergy ? '딱 5분만 시작' : '집중 시작',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.25,
-                          height: 1.1,
-                          color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _focusButtonInset),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _focusButtonMaxWidth),
+                  child: Material(
+                    color: _accentRed,
+                    elevation: 4,
+                    shadowColor: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: onStartFocus,
+                      child: SizedBox.expand(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.timer_outlined, size: 28, color: Colors.white),
+                            const SizedBox(width: 10),
+                            Text(
+                              lowEnergy ? '딱 5분만 시작' : '집중 시작',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.25,
+                                height: 1.1,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

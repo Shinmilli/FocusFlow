@@ -20,6 +20,17 @@ abstract class PlanningRepository {
   /// 서브태스크 갱신(완료 체크 등).
   Future<void> updateBlock(TaskBlock block);
 
+  /// 주간·과거 날짜 계획 화면용 갱신.
+  ///
+  /// - **오늘·미래 날짜**: 전역 블록([updateBlock])과 동일.
+  /// - **이미 지난 날짜**: 그 날짜에 고정된 스냅샷만 바뀌고, 오늘 체크리스트·전역 블록은 그대로.
+  Future<void> upsertPlanBlockForDate(String dateKey, TaskBlock block);
+
+  /// 해당 날짜 계획에서 블록을 끝낸 리스트(전 단계 완료) / 할 리스트(전 단계 미완료)로 옮김.
+  ///
+  /// 과거 날짜는 스냅샷만 수정하고, 오늘·미래는 전역 블록을 수정한다.
+  Future<void> setPlanBlockFullyCompleteForDate(String dateKey, String blockId, bool fullyComplete);
+
   /// 블록 삭제(오늘/백로그 목록에서 모두 제거).
   Future<void> deleteBlock(String blockId);
 

@@ -20,6 +20,8 @@ class TodayPickTile extends StatelessWidget {
     this.onDelete,
     this.onEditChecklist,
     this.onSetCurrentTask,
+    this.onMoveToDoneList,
+    this.onMoveToTodoList,
     this.variant = TodayPickTileVariant.standard,
   });
 
@@ -31,6 +33,10 @@ class TodayPickTile extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onEditChecklist;
   final VoidCallback? onSetCurrentTask;
+  /// 주간 계획 — 할 리스트에서 끝낸 리스트로 옮길 때.
+  final VoidCallback? onMoveToDoneList;
+  /// 주간 계획 — 끝낸 리스트에서 할 리스트로 되돌릴 때.
+  final VoidCallback? onMoveToTodoList;
   final TodayPickTileVariant variant;
 
   @override
@@ -47,7 +53,11 @@ class TodayPickTile extends StatelessWidget {
     return _buildStandard(context, effectiveDisabled, completed);
   }
 
-  PopupMenuButton<String> _weekPlanMenu(BuildContext context, {required bool showRemoveFromDay}) {
+  PopupMenuButton<String> _weekPlanMenu(
+    BuildContext context, {
+    required bool showRemoveFromDay,
+    required bool completedForLists,
+  }) {
     return PopupMenuButton<String>(
       tooltip: '더보기',
       icon: Icon(Icons.more_vert, color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -56,12 +66,24 @@ class TodayPickTile extends StatelessWidget {
         if (value == 'edit') onEditChecklist?.call();
         if (value == 'current') onSetCurrentTask?.call();
         if (value == 'remove_day') onChanged(false);
+        if (value == 'done_list') onMoveToDoneList?.call();
+        if (value == 'todo_list') onMoveToTodoList?.call();
       },
       itemBuilder: (_) => [
         if (showRemoveFromDay)
           const PopupMenuItem<String>(
             value: 'remove_day',
             child: Text('이 날 계획에서 빼기'),
+          ),
+        if (!completedForLists && onMoveToDoneList != null)
+          const PopupMenuItem<String>(
+            value: 'done_list',
+            child: Text('끝낸 리스트로 옮기기'),
+          ),
+        if (completedForLists && onMoveToTodoList != null)
+          const PopupMenuItem<String>(
+            value: 'todo_list',
+            child: Text('할 리스트로 옮기기'),
           ),
         if (onSetCurrentTask != null)
           const PopupMenuItem<String>(
@@ -83,7 +105,11 @@ class TodayPickTile extends StatelessWidget {
   }
 
   Widget _buildWeekPlanTodo(BuildContext context, bool effectiveDisabled) {
-    final hasMenu = onDelete != null || onEditChecklist != null || onSetCurrentTask != null;
+    final hasMenu = onDelete != null ||
+        onEditChecklist != null ||
+        onSetCurrentTask != null ||
+        onMoveToDoneList != null ||
+        onMoveToTodoList != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
@@ -117,7 +143,7 @@ class TodayPickTile extends StatelessWidget {
                   ),
                   if (hasMenu || selected) ...[
                     const SizedBox(width: 4),
-                    _weekPlanMenu(context, showRemoveFromDay: selected),
+                    _weekPlanMenu(context, showRemoveFromDay: selected, completedForLists: false),
                   ],
                 ],
               ),
@@ -157,12 +183,19 @@ class TodayPickTile extends StatelessWidget {
               if (value == 'edit') onEditChecklist?.call();
               if (value == 'current') onSetCurrentTask?.call();
               if (value == 'remove_day') onChanged(false);
+              if (value == 'done_list') onMoveToDoneList?.call();
+              if (value == 'todo_list') onMoveToTodoList?.call();
             },
             itemBuilder: (_) => [
               const PopupMenuItem<String>(
                 value: 'remove_day',
                 child: Text('이 날 계획에서 빼기'),
               ),
+              if (onMoveToTodoList != null)
+                const PopupMenuItem<String>(
+                  value: 'todo_list',
+                  child: Text('할 리스트로 옮기기'),
+                ),
               if (onSetCurrentTask != null)
                 const PopupMenuItem<String>(
                   value: 'current',

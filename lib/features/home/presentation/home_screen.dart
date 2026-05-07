@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/config/api_config.dart';
 import '../../ai_agent/presentation/ai_assistant_hub.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../gamification/presentation/gamification_providers.dart';
@@ -64,7 +63,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       IconButton(
         tooltip: '새로고침',
         onPressed: refreshHome,
-        icon: Icon(Icons.refresh, color: Colors.white.withOpacity(0.92)),
+        icon: Icon(Icons.refresh, color: Colors.white.withValues(alpha: 0.92)),
         visualDensity: VisualDensity.compact,
       ),
     ];
@@ -80,6 +79,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onStartFocus: () => context.push('/focus'),
       tierEn: tierEn,
       onTapTier: () => context.push('/flow-track'),
+      aiAdvice: '지금은 “다음 한 단계”만.',
+      showNumericStats: false,
     );
 
     Widget scrollHome(List<Widget> bodySlivers) {
@@ -124,12 +125,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Text(
                       '지금은 “다음 한 단계”만.',
                       style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '계획 강도 ×${ctx.planIntensityMultiplier.toStringAsFixed(2)} · 수면 ${ctx.sleepHours.toStringAsFixed(1)}h · 스트레스 ${ctx.stressLevel}/5',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                     const SizedBox(height: 24),
                     Text(

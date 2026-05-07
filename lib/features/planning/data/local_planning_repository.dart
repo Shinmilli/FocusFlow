@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/persistence/user_local_data_scope.dart';
+import '../../../core/time/planning_date_key.dart';
 import '../domain/planning_repository.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
@@ -29,9 +30,178 @@ class LocalPlanningRepository implements PlanningRepository {
 
   static const _kBlocksBase = 'planning.blocks.v1';
   static const _kSelectedByDateBase = 'planning.selectedByDate.v1';
+  static const _kArchivedDayBlocksBase = 'planning.archivedDayBlocks.v1';
+  static const _kLastArchivedDayBase = 'planning.lastArchivedDay.v1';
+  static const _kLastTodayKeyBase = 'planning.lastTodayKey.v1';
+  static const _kLegacyTodaySelectionMigratedBase = 'planning.legacyTodaySelectionMigrated.v1';
 
   String get _kBlocks => scopedPreferenceKey(_kBlocksBase, storageScope);
   String get _kSelectedByDate => scopedPreferenceKey(_kSelectedByDateBase, storageScope);
+  String get _kArchivedDayBlocks => scopedPreferenceKey(_kArchivedDayBlocksBase, storageScope);
+  String get _kLastArchivedDay => scopedPreferenceKey(_kLastArchivedDayBase, storageScope);
+  String get _kLastTodayKey => scopedPreferenceKey(_kLastTodayKeyBase, storageScope);
+  String get _kLegacyTodaySelectionMigrated => scopedPreferenceKey(_kLegacyTodaySelectionMigratedBase, storageScope);
+
+  TaskBlock _freezeForArchive(TaskBlock b) {
+    return TaskBlock.fromJson(b.toJson()).copyWith(isCurrentTask: false);
+  }
+
+  Future<Map<String, Map<String, TaskBlock>>> _loadArchivedDayBlocks() async {
+    final prefs = await _prefsFuture;
+    final raw = prefs.getString(_kArchivedDayBlocks);
+    if (raw == null || raw.trim().isEmpty) return {};
+    final decoded = jsonDecode(raw);
+    if (decoded is! Map) return {};
+    final out = <String, Map<String, TaskBlock>>{};
+    for (final e in decoded.entries) {
+      final inner = e.value;
+      if (inner is! Map) continue;
+      final m = <String, TaskBlock>{};
+      for (final ie in inner.entries) {
+        final v = ie.value;
+        if (v is! Map) continue;
+        m[ie.key.toString()] = TaskBlock.fromJson(v.cast<String, Object?>());
+      }
+      out[e.key.toString()] = m;
+    }
+    return out;
+  }
+
+  Future<void> _saveArchivedDayBlocks(Map<String, Map<String, TaskBlock>> archived) async {
+    final prefs = await _prefsFuture;
+    final top = <String, dynamic>{};
+    for (final e in archived.entries) {
+      top[e.key] = e.value.map((id, b) => MapEntry(id, b.toJson()));
+    }
+    await prefs.setString(_kArchivedDayBlocks, jsonEncode(top));
+  }
+
+  Future<void> _purgeArchivedForBlock(String blockId) async {
+    final archived = await _loadArchivedDayBlocks();
+    var touched = false;
+    for (final dayKey in archived.keys.toList()) {
+      final m = archived[dayKey];
+      if (m == null) continue;
+      if (m.remove(blockId) != null) {
+        touched = true;
+        if (m.isEmpty) archived.remove(dayKey);
+      }
+    }
+    if (touched) await _saveArchivedDayBlocks(archived);
+  }
+
+  /// 어제까지 지난 날짜 계획에 대해, 당시 선택된 블록 상태를 스냅샷으로 고정한다.
+  Future<void> _ensureArchivedThroughYesterday(
+    List<TaskBlock> all,
+    Map<String, Set<String>> selectedByDate,
+  ) async {
+    final today = _todayKey();
+    final yesterday = addCalendarDaysToPlanningDateKey(today, -1);
+
+    final prefs = await _prefsFuture;
+    final lastTodayKey = prefs.getString(_kLastTodayKey)?.trim();
+    if (lastTodayKey == null || lastTodayKey.isEmpty) {
+      await prefs.setString(_kLastTodayKey, today);
+    } else if (lastTodayKey != today) {
+      // 날짜가 바뀌었으면, 전날의 "오늘 선택/현재 작업" 플래그는 더 이상 유효하지 않다.
+      // 오늘 선택은 selectedByDate[today]로만 결정되므로, 레거시 플래그를 모두 내린다.
+      final updated = [
+        for (final b in all) b.copyWith(isSelectedForToday: false, isCurrentTask: false),
+      ];
+      await _saveAll(updated);
+      all
+        ..clear()
+        ..addAll(updated);
+      await prefs.setString(_kLastTodayKey, today);
+    }
+
+    final lastRaw = prefs.getString(_kLastArchivedDay)?.trim();
+
+    final endKey = yesterday;
+
+    late String startKey;
+    if (lastRaw == null || lastRaw.isEmpty) {
+      final earliest = earliestPastPlanDayKey(selectedByDate.keys, today);
+      startKey = earliest ?? yesterday;
+    } else {
+      startKey = addCalendarDaysToPlanningDateKey(lastRaw, 1);
+    }
+
+    if (comparePlanningDateKeys(startKey, endKey) > 0) return;
+
+    var archived = await _loadArchivedDayBlocks();
+    var dk = startKey;
+    while (comparePlanningDateKeys(dk, endKey) <= 0) {
+      final sel = selectedByDate[dk] ?? {};
+      if (sel.isNotEmpty) {
+        final dayMap = Map<String, TaskBlock>.from(archived[dk] ?? {});
+        for (final id in sel) {
+          TaskBlock? live;
+          for (final b in all) {
+            if (b.id == id) {
+              live = b;
+              break;
+            }
+          }
+          if (live != null) {
+            dayMap[id] = _freezeForArchive(live);
+          }
+        }
+        archived[dk] = dayMap;
+      }
+      dk = addCalendarDaysToPlanningDateKey(dk, 1);
+    }
+
+    await _saveArchivedDayBlocks(archived);
+    await prefs.setString(_kLastArchivedDay, yesterday);
+  }
+
+  TaskBlock? _resolveBlockForDate(
+    String dateKey,
+    String blockId,
+    List<TaskBlock> all,
+    Map<String, Map<String, TaskBlock>> archived,
+  ) {
+    final today = _todayKey();
+    if (!isStrictlyPastPlanningDateKey(dateKey, today)) {
+      for (final b in all) {
+        if (b.id == blockId) return b;
+      }
+      return null;
+    }
+    final snap = archived[dateKey]?[blockId];
+    if (snap != null) return snap;
+    for (final b in all) {
+      if (b.id == blockId) return b;
+    }
+    return null;
+  }
+
+  /// 레거시(`isSelectedForToday`) → 날짜별 선택(`selectedByDate[today]`) 1회 마이그레이션.
+  ///
+  /// 예전 버전에선 "오늘 선택"이 블록 필드에만 저장돼서 날짜가 지나도 유지될 수 있음.
+  /// 새 규칙에선 날짜가 바뀌면 "오늘"은 비어 있고, 전날 선택은 백로그로 내려가야 하므로
+  /// 최초 1회만 오늘 날짜 키에 선택을 기록해 준다.
+  Future<Map<String, Set<String>>> _ensureTodaySelectionMigrated(
+    List<TaskBlock> all,
+    Map<String, Set<String>> selectedByDate,
+  ) async {
+    final prefs = await _prefsFuture;
+    final already = prefs.getBool(_kLegacyTodaySelectionMigrated) ?? false;
+    if (already) return selectedByDate;
+
+    final today = _todayKey();
+    final sel = selectedByDate[today];
+    if (sel != null && sel.isNotEmpty) return selectedByDate;
+
+    final legacySelected = all.where((b) => b.isSelectedForToday).map((b) => b.id).toSet();
+    if (legacySelected.isEmpty) return selectedByDate;
+
+    final next = {...selectedByDate, today: legacySelected};
+    await _saveSelectedByDate(next);
+    await prefs.setBool(_kLegacyTodaySelectionMigrated, true);
+    return next;
+  }
 
   Future<List<TaskBlock>> _loadAll() async {
     final prefs = await _prefsFuture;
@@ -112,27 +282,29 @@ class LocalPlanningRepository implements PlanningRepository {
   @override
   Future<List<TaskBlock>> loadTodayVisibleBlocks(String dateKey) async {
     final all = await _loadAll();
-    final selectedByDate = await _loadSelectedByDate();
-    final sel = selectedByDate[dateKey] ?? {};
-    final today = _todayKey();
-    if (dateKey == today) {
-      if (sel.isNotEmpty) {
-        return all.where((b) => sel.contains(b.id)).toList();
-      }
-      return all.where((b) => b.isSelectedForToday).toList();
+    var selectedByDate = await _loadSelectedByDate();
+    selectedByDate = await _ensureTodaySelectionMigrated(all, selectedByDate);
+    await _ensureArchivedThroughYesterday(all, selectedByDate);
+    final archived = await _loadArchivedDayBlocks();
+    final sel = selectedByDate[dateKey] ?? const <String>{};
+    final out = <TaskBlock>[];
+    for (final id in sel) {
+      final b = _resolveBlockForDate(dateKey, id, all, archived);
+      if (b != null) out.add(b);
     }
-    return all.where((b) => sel.contains(b.id)).toList();
+    return out;
   }
 
   @override
   Future<List<TaskBlock>> loadBacklog() async {
     final today = _todayKey();
-    final selectedByDate = await _loadSelectedByDate();
-    final sel = selectedByDate[today] ?? {};
     final all = await _loadAll();
+    var selectedByDate = await _loadSelectedByDate();
+    selectedByDate = await _ensureTodaySelectionMigrated(all, selectedByDate);
+    final sel = selectedByDate[today] ?? const <String>{};
     return all
         .where((b) {
-          final inPlan = sel.contains(b.id) || (sel.isEmpty && b.isSelectedForToday);
+          final inPlan = sel.contains(b.id);
           return !inPlan && !b.isFullyComplete;
         })
         .toList();
@@ -173,10 +345,12 @@ class LocalPlanningRepository implements PlanningRepository {
       }
       currentId ??= blockIds.firstWhere((id) => selectedSet.contains(id), orElse: () => selectedSet.first);
     }
+    final today = _todayKey();
+    final shouldWriteTodayFlags = dateKey == today;
     final updated = [
       for (final b in all)
         b.copyWith(
-          isSelectedForToday: selectedSet.contains(b.id),
+          isSelectedForToday: shouldWriteTodayFlags ? selectedSet.contains(b.id) : b.isSelectedForToday,
           isCurrentTask: currentId != null && b.id == currentId,
         ),
     ];
@@ -202,6 +376,69 @@ class LocalPlanningRepository implements PlanningRepository {
   }
 
   @override
+  Future<void> upsertPlanBlockForDate(String dateKey, TaskBlock block) async {
+    final today = _todayKey();
+    if (!isStrictlyPastPlanningDateKey(dateKey, today)) {
+      await updateBlock(block);
+      return;
+    }
+    final all = await _loadAll();
+    var selectedByDate = await _loadSelectedByDate();
+    selectedByDate = await _ensureTodaySelectionMigrated(all, selectedByDate);
+    await _ensureArchivedThroughYesterday(all, selectedByDate);
+
+    final archived = await _loadArchivedDayBlocks();
+    final dayMap = Map<String, TaskBlock>.from(archived[dateKey] ?? {});
+    dayMap[block.id] = _freezeForArchive(block);
+    archived[dateKey] = dayMap;
+    await _saveArchivedDayBlocks(archived);
+    _fireMutate();
+  }
+
+  @override
+  Future<void> setPlanBlockFullyCompleteForDate(String dateKey, String blockId, bool fullyComplete) async {
+    final all = await _loadAll();
+    TaskBlock? live;
+    for (final b in all) {
+      if (b.id == blockId) {
+        live = b;
+        break;
+      }
+    }
+    if (live == null) return;
+
+    final today = _todayKey();
+    if (!isStrictlyPastPlanningDateKey(dateKey, today)) {
+      final nextUnits = [
+        for (final u in live.units) u.copyWith(isDone: fullyComplete),
+      ];
+      await updateBlock(
+        live.copyWith(
+          units: nextUnits,
+        ),
+      );
+      return;
+    }
+
+    var selectedByDate = await _loadSelectedByDate();
+    selectedByDate = await _ensureTodaySelectionMigrated(all, selectedByDate);
+    await _ensureArchivedThroughYesterday(all, selectedByDate);
+
+    final archived = await _loadArchivedDayBlocks();
+    final base = archived[dateKey]?[blockId] ?? _freezeForArchive(live);
+    final nextUnits = [
+      for (final u in base.units) u.copyWith(isDone: fullyComplete),
+    ];
+    final next = base.copyWith(units: nextUnits, isCurrentTask: false);
+
+    final dayMap = Map<String, TaskBlock>.from(archived[dateKey] ?? {});
+    dayMap[blockId] = next;
+    archived[dateKey] = dayMap;
+    await _saveArchivedDayBlocks(archived);
+    _fireMutate();
+  }
+
+  @override
   Future<void> deleteBlock(String blockId) async {
     final all = await _loadAll();
     all.removeWhere((b) => b.id == blockId);
@@ -217,13 +454,17 @@ class LocalPlanningRepository implements PlanningRepository {
       }
     }
     await _saveSelectedByDate(selectedByDate);
+    await _purgeArchivedForBlock(blockId);
     _fireMutate();
   }
 
   @override
   Future<void> setCurrentTask(String? blockId) async {
     final all = await _loadAll();
-    final selected = all.where((b) => b.isSelectedForToday).toList();
+    final today = _todayKey();
+    final selectedByDate = await _loadSelectedByDate();
+    final selectedIds = selectedByDate[today] ?? const <String>{};
+    final selected = all.where((b) => selectedIds.contains(b.id)).toList();
     String? currentId = blockId;
     if (currentId == null && selected.isNotEmpty) {
       for (final b in selected) {

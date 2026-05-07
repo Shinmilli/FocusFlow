@@ -12,6 +12,8 @@ import 'user_sync_pref_keys.dart';
 bool syncPayloadLooksRich(Map<String, dynamic> p) {
   final b = p['planningBlocks'];
   if (b is List && b.isNotEmpty) return true;
+  final arch = p['planningArchivedDayBlocks'];
+  if (arch is Map && arch.isNotEmpty) return true;
   final e = p['focusEvents'];
   if (e is List && e.isNotEmpty) return true;
   final pr = p['playerProgress'];
@@ -72,6 +74,8 @@ class UserSyncService {
   static Future<Map<String, dynamic>> collectPayloadForScope(String scope, SharedPreferences prefs) async {
     final blocksRaw = prefs.getString(scopedPreferenceKey(UserSyncPrefKeys.planningBlocks, scope)) ?? '[]';
     final selRaw = prefs.getString(scopedPreferenceKey(UserSyncPrefKeys.planningSelectedByDate, scope)) ?? '{}';
+    final archRaw = prefs.getString(scopedPreferenceKey(UserSyncPrefKeys.planningArchivedDayBlocks, scope)) ?? '{}';
+    final lastArch = prefs.getString(scopedPreferenceKey(UserSyncPrefKeys.planningLastArchivedDay, scope));
     final progRaw = prefs.getString(scopedPreferenceKey(UserSyncPrefKeys.playerProgress, scope));
     final goalsRaw = prefs.getString(scopedPreferenceKey(UserSyncPrefKeys.goalsList, scope)) ?? '[]';
     final eventsRaw = prefs.getString(scopedPreferenceKey(UserSyncPrefKeys.focusEvents, scope)) ?? '[]';
@@ -90,6 +94,19 @@ class UserSyncService {
           final v = e.value;
           if (v is List) {
             selDecoded[e.key.toString()] = v;
+          }
+        }
+      }
+    } catch (_) {}
+
+    Map<String, dynamic> archDecoded = {};
+    try {
+      final d = jsonDecode(archRaw);
+      if (d is Map) {
+        for (final e in d.entries) {
+          final inner = e.value;
+          if (inner is Map) {
+            archDecoded[e.key.toString()] = inner.cast<String, dynamic>();
           }
         }
       }
@@ -120,6 +137,8 @@ class UserSyncService {
     return {
       'planningBlocks': blocksDecoded,
       'planningSelectedByDate': selDecoded,
+      'planningArchivedDayBlocks': archDecoded,
+      if (lastArch != null && lastArch.trim().isNotEmpty) 'planningLastArchivedDay': lastArch,
       'playerProgress': progObj.isEmpty ? const PlayerProgress().toJson() : progObj,
       'goals': goalsDecoded,
       'focusEvents': eventsDecoded,
@@ -137,6 +156,13 @@ class UserSyncService {
     }
     if (remote['planningSelectedByDate'] is Map) {
       writeJson(UserSyncPrefKeys.planningSelectedByDate, remote['planningSelectedByDate']);
+    }
+    if (remote['planningArchivedDayBlocks'] is Map) {
+      writeJson(UserSyncPrefKeys.planningArchivedDayBlocks, remote['planningArchivedDayBlocks']);
+    }
+    final lad = remote['planningLastArchivedDay'];
+    if (lad is String && lad.trim().isNotEmpty) {
+      await prefs.setString(scopedPreferenceKey(UserSyncPrefKeys.planningLastArchivedDay, scope), lad.trim());
     }
     if (remote['playerProgress'] is Map) {
       writeJson(UserSyncPrefKeys.playerProgress, remote['playerProgress']);

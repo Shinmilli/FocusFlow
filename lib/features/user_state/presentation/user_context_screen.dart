@@ -113,7 +113,7 @@ class _UserContextScreenState extends ConsumerState<UserContextScreen> {
               children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('오늘 계획 강도 승수'),
+            title: const Text('오늘 계획 강도'),
             subtitle: Text(mult.toStringAsFixed(2)),
           ),
           FilledButton(

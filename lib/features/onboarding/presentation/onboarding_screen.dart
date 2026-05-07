@@ -57,6 +57,8 @@ class _Intro extends StatelessWidget {
 
   final VoidCallback onNext;
 
+  static const double _primaryButtonMaxWidth = 420;
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -86,9 +88,18 @@ class _Intro extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        FilledButton(
-          onPressed: onNext,
-          child: const Text('30초만 체크하고 시작'),
+        Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _primaryButtonMaxWidth),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: onNext,
+                child: const Text('30초만 체크하고 시작'),
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         Text(
@@ -114,6 +125,8 @@ class _QuickCheck extends StatelessWidget {
   final bool phoneHeavyUse;
   final Future<void> Function() onDone;
   final VoidCallback onAdjustContext;
+
+  static const double _primaryButtonMaxWidth = 420;
 
   @override
   Widget build(BuildContext context) {
@@ -151,9 +164,18 @@ class _QuickCheck extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        FilledButton(
-          onPressed: () => onDone(),
-          child: Text(lowEnergy ? '오늘은 5분부터 시작' : '시작하기'),
+        Align(
+          alignment: Alignment.center,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _primaryButtonMaxWidth),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => onDone(),
+                child: Text(lowEnergy ? '오늘은 5분부터 시작' : '시작하기'),
+              ),
+            ),
+          ),
         ),
       ],
     );
