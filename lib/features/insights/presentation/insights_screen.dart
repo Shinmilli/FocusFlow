@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/layout/embedded_screen_shell.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../../focus_session/domain/focus_log_event.dart';
 import '../../focus_session/presentation/focus_log_providers.dart';
@@ -9,7 +10,9 @@ import '../../planning/presentation/planning_providers.dart';
 import 'insights_providers.dart';
 
 class InsightsScreen extends ConsumerWidget {
-  const InsightsScreen({super.key});
+  const InsightsScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -18,33 +21,10 @@ class InsightsScreen extends ConsumerWidget {
     final asyncBlocks = ref.watch(todayBlocksProvider);
     final asyncDerived = ref.watch(derivedSignalsProvider);
 
-    return Scaffold(
-      backgroundColor: AppChrome.pageBackground,
-      appBar: AppBar(
-        backgroundColor: AppChrome.topBarBackground,
-        foregroundColor: AppChrome.topBarForeground,
-        surfaceTintColor: Colors.transparent,
-        title: const Text('기록/통계'),
-        actions: [
-          IconButton(
-            tooltip: '로그 초기화(개발용)',
-            onPressed: () async {
-              await ref.read(focusLogRepositoryProvider).clear();
-              ref.invalidate(focusLogEventsProvider);
-              ref.invalidate(derivedSignalsProvider);
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('로그를 초기화했어요')),
-              );
-            },
-            icon: const Icon(Icons.delete_outline),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-        children: [
-          ref.watch(todaySummaryProvider).when(
+    final body = ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+      children: [
+        ref.watch(todaySummaryProvider).when(
                 loading: () => const _LoadingCard(title: '오늘 요약'),
                 error: (e, _) => _ErrorCard(title: '오늘 요약', error: '$e'),
                 data: (text) => _StatCard(
@@ -121,7 +101,55 @@ class InsightsScreen extends ConsumerWidget {
             },
           ),
         ],
+    );
+
+    if (embedded) {
+      return EmbeddedScreenShell(
+        title: '기록/통계',
+        actions: [
+          IconButton(
+            tooltip: '로그 초기화(개발용)',
+            color: AppChrome.primaryActionNavy,
+            onPressed: () async {
+              await ref.read(focusLogRepositoryProvider).clear();
+              ref.invalidate(focusLogEventsProvider);
+              ref.invalidate(derivedSignalsProvider);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('로그를 초기화했어요')),
+              );
+            },
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+        child: body,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppChrome.pageBackground,
+      appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('기록/통계'),
+        actions: [
+          IconButton(
+            tooltip: '로그 초기화(개발용)',
+            onPressed: () async {
+              await ref.read(focusLogRepositoryProvider).clear();
+              ref.invalidate(focusLogEventsProvider);
+              ref.invalidate(derivedSignalsProvider);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('로그를 초기화했어요')),
+              );
+            },
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
       ),
+      body: body,
     );
   }
 

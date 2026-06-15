@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../mcp/presentation/mcp_organize_flow.dart';
 import '../../coach/presentation/coach_nudge_controller.dart';
 import '../../focus_session/presentation/focus_log_providers.dart';
 import '../../goals/presentation/goals_providers.dart';
@@ -240,6 +241,24 @@ Future<void> showAiAssistantHub(BuildContext context, WidgetRef ref) async {
                   '오늘 계획 추천, 패턴 컨설팅, 일 쪼개기까지 한곳에서 연결해요.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.cloud_sync_outlined),
+                title: const Text('외부 일정 · 할 일 정리'),
+                subtitle: const Text('Notion·Google·삼성 캘린더 → AI 정리 → 집중 시작'),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  openMcpOrganizeFlow(context, ref);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.link),
+                title: const Text('외부 도구 연결'),
+                subtitle: const Text('Google Calendar · Notion OAuth'),
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  context.push('/mcp');
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.auto_awesome),

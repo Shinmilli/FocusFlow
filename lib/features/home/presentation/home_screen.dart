@@ -3,15 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/layout/responsive_layout.dart';
 import '../../ai_agent/presentation/ai_assistant_hub.dart';
 import '../../auth/domain/auth_state.dart';
 import '../../gamification/presentation/gamification_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import '../../auth/presentation/auth_providers.dart';
 import '../../flow_track/presentation/flow_track_providers.dart';
+import '../../mcp/presentation/mcp_organize_flow.dart';
 import '../../planning/domain/task_block.dart';
 import '../../planning/presentation/planning_providers.dart';
 import '../../planning/presentation/planning_screen.dart';
+import 'widgets/home_desktop_side_panel.dart';
+import 'widgets/home_task_grid_layout.dart';
 import 'widgets/today_project_hero.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -83,8 +87,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       showNumericStats: false,
     );
 
+    final expanded = ResponsiveLayout.isExpanded(context);
+
     Widget scrollHome(List<Widget> bodySlivers) {
-      return CustomScrollView(
+      final scroll = CustomScrollView(
         slivers: [
           SliverPersistentHeader(
             pinned: true,
@@ -93,7 +99,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ...bodySlivers,
         ],
       );
+
+      if (!expanded) return scroll;
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            flex: 5,
+            child: scroll,
+          ),
+          Expanded(
+            flex: 2,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: HomeDesktopSidePanel.minWidth),
+              child: const HomeDesktopSidePanel(),
+            ),
+          ),
+        ],
+      );
     }
+
+    final gridCrossCount = HomeTaskGridLayout.crossAxisCount(context);
+    final gridPadding = HomeTaskGridLayout.gridHorizontalPadding(context);
 
     return asyncBlocks.when(
       loading: () => scrollHome([
@@ -144,6 +172,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(height: 20),
                     FilledButton.icon(
+                      onPressed: () => openMcpOrganizeFlow(context, ref),
+                      icon: const Icon(Icons.auto_awesome),
+                      label: const Text('외부 일정 · 할 일 AI 정리'),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
                       onPressed: () => context.push('/plan/add'),
                       icon: const Icon(Icons.add),
                       label: const Text('블록 추가'),
@@ -159,9 +193,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             )
           else ...[
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              padding: EdgeInsets.fromLTRB(gridPadding, 0, gridPadding, 4),
               sliver: SliverMasonryGrid.count(
-                crossAxisCount: 2,
+                crossAxisCount: gridCrossCount,
                 mainAxisSpacing: 14,
                 crossAxisSpacing: 14,
                 childCount: list.length,

@@ -2,8 +2,76 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../app/layout/responsive_layout.dart';
+import '../../../../app/theme/app_chrome.dart';
 import '../../../flow_track/presentation/flow_track_tier_style.dart';
 import '../../../gamification/domain/player_progress.dart';
+
+abstract final class _HeroLayout {
+  static const horizontalMarginCompact = 16.0;
+  static const borderRadius = 22.0;
+  static const cardBg = Color(0xFF1F212A);
+  static const accentRed = Color(0xFFE52D3D);
+  static const focusBtnWidthCompact = 200.0;
+  static const focusBtnWidthExpanded = 260.0;
+  static const focusBtnHeightCompact = 68.0;
+  static const focusBtnHeightExpanded = 72.0;
+
+  static double focusBtnWidth(BuildContext context) =>
+      ResponsiveLayout.isExpanded(context) ? focusBtnWidthExpanded : focusBtnWidthCompact;
+
+  static double focusBtnHeight(BuildContext context) =>
+      ResponsiveLayout.isExpanded(context) ? focusBtnHeightExpanded : focusBtnHeightCompact;
+
+  static double horizontalMargin(BuildContext context) =>
+      ResponsiveLayout.isExpanded(context) ? 0 : horizontalMarginCompact;
+}
+
+class _FocusStartButton extends StatelessWidget {
+  const _FocusStartButton({
+    required this.onTap,
+    required this.lowEnergy,
+  });
+
+  final VoidCallback onTap;
+  final bool lowEnergy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: _HeroLayout.accentRed,
+      elevation: 4,
+      shadowColor: Colors.black26,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: _HeroLayout.focusBtnWidth(context),
+          height: _HeroLayout.focusBtnHeight(context),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.timer_outlined, size: 26, color: Colors.white),
+              const SizedBox(height: 6),
+              Text(
+                lowEnergy ? '5분 시작' : '집중 시작',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                  height: 1.1,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// 상단에 고정되는 한 줄: 제목 + 우측 액션 (레벨·집중 시작 제외).
 class TodayProjectHeroPinnedTitleBar extends StatelessWidget {
@@ -16,8 +84,6 @@ class TodayProjectHeroPinnedTitleBar extends StatelessWidget {
   final String heroTitle;
   final List<Widget> leadingActions;
 
-  static const _cardBg = Color(0xFF1F212A);
-
   static double scrollExtent(BuildContext context) {
     final safeTop = math.max(MediaQuery.paddingOf(context).top, 4.0);
     const verticalPad = 8.0;
@@ -27,16 +93,32 @@ class TodayProjectHeroPinnedTitleBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: _cardBg,
+    return ColoredBox(
+      color: AppChrome.pageBackground,
       child: SafeArea(
         bottom: false,
         minimum: const EdgeInsets.only(top: 4),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
-          child: _TodayProjectHeroTitleRow(
-            heroTitle: heroTitle,
-            leadingActions: leadingActions,
+          padding: EdgeInsets.fromLTRB(
+            _HeroLayout.horizontalMargin(context),
+            8,
+            _HeroLayout.horizontalMargin(context),
+            0,
+          ),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: _HeroLayout.cardBg,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(_HeroLayout.borderRadius),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 8, 22, 8),
+              child: _TodayProjectHeroTitleRow(
+                heroTitle: heroTitle,
+                leadingActions: leadingActions,
+              ),
+            ),
           ),
         ),
       ),
@@ -51,6 +133,8 @@ class _HeroLevelStatsSection extends StatelessWidget {
     this.onTapTier,
     this.advice,
     this.showNumericStats = true,
+    this.onStartFocus,
+    this.lowEnergy = false,
   });
 
   final PlayerProgress progress;
@@ -58,6 +142,8 @@ class _HeroLevelStatsSection extends StatelessWidget {
   final VoidCallback? onTapTier;
   final Widget? advice;
   final bool showNumericStats;
+  final VoidCallback? onStartFocus;
+  final bool lowEnergy;
 
   static const _trackBg = Color(0xFF2E323C);
   static const _muted = Color(0xFFB8BCC8);
@@ -119,53 +205,67 @@ class _HeroLevelStatsSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'LEVEL',
-                    style: TextStyle(
-                      color: _muted.withValues(alpha: 0.85),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Lv.${progress.level}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      height: 1.05,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: ratio.clamp(0.0, 1.0),
-                    minHeight: 12,
-                    backgroundColor: _trackBg,
-                    color: primary,
-                  ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'LEVEL',
+                          style: TextStyle(
+                            color: _muted.withValues(alpha: 0.85),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Lv.${progress.level}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            height: 1.05,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: ratio.clamp(0.0, 1.0),
+                          minHeight: 12,
+                          backgroundColor: _trackBg,
+                          color: primary,
+                        ),
+                      ),
+                    ),
+                    if (showNumericStats) ...[
+                      const SizedBox(width: 12),
+                      Text(
+                        '${progress.xp}/$need',
+                        style: const TextStyle(
+                          color: _muted,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              if (showNumericStats) ...[
-                const SizedBox(width: 12),
-                Text(
-                  '${progress.xp}/$need',
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+              if (onStartFocus != null) ...[
+                const SizedBox(width: 20),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: _FocusStartButton(onTap: onStartFocus!, lowEnergy: lowEnergy),
                 ),
               ],
             ],
@@ -219,100 +319,45 @@ class TodayProjectHeroScrollBody extends StatelessWidget {
   final String? aiAdvice;
   final bool showNumericStats;
 
-  static const _cardBg = Color(0xFF1F212A);
-  static const _accentRed = Color(0xFFE52D3D);
-
-  static const double _focusButtonInset = 88;
-  static const double _focusButtonHeight = 82;
-  static const double _focusButtonMaxWidth = 360;
-  static const double _hitExtendBelowCard = 54;
-  static const double _focusButtonBottomOffset = -4;
-  /// 아래 카드와 버튼 영역 여백 — 줄일수록 카드가 더 위로 붙음.
-  static const double _heroBottomPadding = 58;
+  static const double _heroBottomPadding = 16;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: _heroBottomPadding),
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: _cardBg,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 14, 22, 52),
-                  child: _HeroLevelStatsSection(
-                    progress: progress,
-                    tierEn: tierEn,
-                    onTapTier: onTapTier,
-                    showNumericStats: showNumericStats,
-                    advice: aiAdvice == null
-                        ? null
-                        : Text(
-                            aiAdvice!,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.2,
-                                ),
-                          ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: _hitExtendBelowCard),
-            ],
+      padding: EdgeInsets.fromLTRB(
+        _HeroLayout.horizontalMargin(context),
+        0,
+        _HeroLayout.horizontalMargin(context),
+        _heroBottomPadding,
+      ),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: _HeroLayout.cardBg,
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(_HeroLayout.borderRadius),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: _focusButtonBottomOffset,
-            height: _focusButtonHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: _focusButtonInset),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: _focusButtonMaxWidth),
-                  child: Material(
-                    color: _accentRed,
-                    elevation: 4,
-                    shadowColor: Colors.black26,
-                    borderRadius: BorderRadius.circular(12),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: onStartFocus,
-                      child: SizedBox.expand(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.timer_outlined, size: 28, color: Colors.white),
-                            const SizedBox(width: 10),
-                            Text(
-                              lowEnergy ? '딱 5분만 시작' : '집중 시작',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.25,
-                                height: 1.1,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
+          child: _HeroLevelStatsSection(
+            progress: progress,
+            tierEn: tierEn,
+            onTapTier: onTapTier,
+            showNumericStats: showNumericStats,
+            onStartFocus: onStartFocus,
+            lowEnergy: lowEnergy,
+            advice: aiAdvice == null
+                ? null
+                : Text(
+                    aiAdvice!,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.2,
                         ),
-                      ),
-                    ),
                   ),
-                ),
-              ),
-            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -379,98 +424,45 @@ class TodayProjectHero extends StatelessWidget {
   final String heroTitle;
   final List<Widget> leadingActions;
 
-  static const _cardBg = Color(0xFF1F212A);
-  static const _accentRed = Color(0xFFE52D3D);
-
-  static const double _focusButtonInset = 88;
-  static const double _focusButtonHeight = 82;
-  static const double _focusButtonMaxWidth = 360;
-  static const double _hitExtendBelowCard = 54;
-  static const double _focusButtonBottomOffset = -10;
-  static const double _heroBottomPadding = 102;
+  static const double _heroBottomPadding = 16;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: _heroBottomPadding),
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: _cardBg,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+      padding: EdgeInsets.fromLTRB(
+        _HeroLayout.horizontalMargin(context),
+        0,
+        _HeroLayout.horizontalMargin(context),
+        _heroBottomPadding,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: _HeroLayout.cardBg,
+          borderRadius: BorderRadius.circular(_HeroLayout.borderRadius),
+        ),
+        child: SafeArea(
+          bottom: false,
+          minimum: const EdgeInsets.only(top: 4),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _TodayProjectHeroTitleRow(
+                  heroTitle: heroTitle,
+                  leadingActions: leadingActions,
                 ),
-                child: SafeArea(
-                  bottom: false,
-                  minimum: const EdgeInsets.only(top: 4),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 8, 22, 52),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _TodayProjectHeroTitleRow(
-                          heroTitle: heroTitle,
-                          leadingActions: leadingActions,
-                        ),
-                        const SizedBox(height: 22),
-                        _HeroLevelStatsSection(progress: progress, tierEn: 'Iron'),
-                      ],
-                    ),
-                  ),
+                const SizedBox(height: 22),
+                _HeroLevelStatsSection(
+                  progress: progress,
+                  tierEn: 'Iron',
+                  onStartFocus: onStartFocus,
+                  lowEnergy: lowEnergy,
                 ),
-              ),
-              const SizedBox(height: _hitExtendBelowCard),
-            ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: _focusButtonBottomOffset,
-            height: _focusButtonHeight,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: _focusButtonInset),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: _focusButtonMaxWidth),
-                  child: Material(
-                    color: _accentRed,
-                    elevation: 4,
-                    shadowColor: Colors.black26,
-                    borderRadius: BorderRadius.circular(12),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: onStartFocus,
-                      child: SizedBox.expand(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.timer_outlined, size: 28, color: Colors.white),
-                            const SizedBox(width: 10),
-                            Text(
-                              lowEnergy ? '딱 5분만 시작' : '집중 시작',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.25,
-                                height: 1.1,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/layout/embedded_screen_shell.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../../sync/presentation/sync_providers.dart';
 import 'goals_providers.dart';
 
 class GoalsScreen extends ConsumerStatefulWidget {
-  const GoalsScreen({super.key});
+  const GoalsScreen({super.key, this.embedded = false});
+
+  final bool embedded;
 
   @override
   ConsumerState<GoalsScreen> createState() => _GoalsScreenState();
@@ -70,29 +73,13 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
   @override
   Widget build(BuildContext context) {
     final asyncGoals = ref.watch(goalsProvider);
-    return Scaffold(
-      backgroundColor: AppChrome.pageBackground,
-      appBar: AppBar(
-        backgroundColor: AppChrome.topBarBackground,
-        foregroundColor: AppChrome.topBarForeground,
-        surfaceTintColor: Colors.transparent,
-        title: const Text('목표'),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: Text(_saving ? '저장 중…' : '저장'),
-          ),
-        ],
-      ),
-      body: asyncGoals.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
-        data: (goals) {
-          _ensureControllers(goals);
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            children: [
-              Container(
+
+    Widget buildBody(List<String> goals) {
+      _ensureControllers(goals);
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+        children: [
+          Container(
                 width: double.infinity,
                 decoration: AppChrome.softCardDecoration(),
                 padding: const EdgeInsets.all(14),
@@ -142,8 +129,43 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
               ),
             ],
           );
-        },
+    }
+
+    final content = asyncGoals.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('$e')),
+      data: buildBody,
+    );
+
+    if (widget.embedded) {
+      return EmbeddedScreenShell(
+        title: '목표',
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : _save,
+            style: TextButton.styleFrom(foregroundColor: AppChrome.primaryActionNavy),
+            child: Text(_saving ? '저장 중…' : '저장'),
+          ),
+        ],
+        child: content,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppChrome.pageBackground,
+      appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('목표'),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : _save,
+            child: Text(_saving ? '저장 중…' : '저장'),
+          ),
+        ],
       ),
+      body: content,
     );
   }
 }

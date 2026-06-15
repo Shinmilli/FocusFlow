@@ -7,6 +7,8 @@ abstract final class AppChrome {
   static const Color heroBadgeBg = Color(0xFF2E3548);
   static const Color heroMuted = Color(0xFFB8BCC8);
   static const Color heroAccentBlue = Color(0xFF4A7DFF);
+  /// 홈·사이드바 버튼과 맞춘 밝은 파랑.
+  static const Color navPrimaryBlue = Color(0xFF4A90E2);
   static const Color softBorder = Color(0xFFE4E8F0);
 
   /// 완료·저장·강제시작 등 공통 (남색, 굵지 않은 라벨).

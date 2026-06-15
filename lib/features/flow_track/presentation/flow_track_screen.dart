@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/layout/embedded_screen_shell.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../../gamification/domain/badge_catalog.dart';
 import '../../gamification/domain/player_progress.dart';
@@ -35,7 +36,10 @@ String _flowWeekRangeLabelKo(String weekStartDateKey) {
 
 /// 플로우 트랙 — 상단 트랙/배지 전환, 현재 티어 표시.
 class FlowTrackScreen extends ConsumerStatefulWidget {
-  const FlowTrackScreen({super.key});
+  const FlowTrackScreen({super.key, this.embedded = false});
+
+  /// 프로필 데스크톱 우측 패널 등에서 Scaffold 없이 표시.
+  final bool embedded;
 
   @override
   ConsumerState<FlowTrackScreen> createState() => _FlowTrackScreenState();
@@ -58,6 +62,62 @@ class _FlowTrackScreenState extends ConsumerState<FlowTrackScreen> {
     final asyncTarget = ref.watch(flowWeeklyTargetProvider);
     final progress = ref.watch(playerProgressProvider);
 
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: SegmentedButton<int>(
+            segments: const [
+              ButtonSegment<int>(
+                value: 0,
+                label: Text('트랙'),
+                icon: Icon(Icons.show_chart_rounded, size: 18),
+              ),
+              ButtonSegment<int>(
+                value: 1,
+                label: Text('배지'),
+                icon: Icon(Icons.emoji_events_outlined, size: 18),
+              ),
+            ],
+            selected: {_tab},
+            onSelectionChanged: (next) {
+              if (next.isEmpty) return;
+              setState(() => _tab = next.first);
+            },
+          ),
+        ),
+        Expanded(
+          child: _tab == 0
+              ? _FlowTrackTab(
+                  asyncSegs: asyncSegs,
+                  asyncTarget: asyncTarget,
+                  lineColor: _lineColor,
+                  tierLevel: _tierLevel,
+                )
+              : _FlowBadgesTab(progress: progress),
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return EmbeddedScreenShell(
+        title: '플로우 트랙',
+        actions: [
+          IconButton(
+            tooltip: '새로고침',
+            color: AppChrome.primaryActionNavy,
+            onPressed: () {
+              ref.invalidate(flowWeekSegmentsProvider);
+              ref.invalidate(flowWeeklyTargetProvider);
+            },
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+        child: body,
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FB),
       appBar: AppBar(
@@ -76,43 +136,7 @@ class _FlowTrackScreenState extends ConsumerState<FlowTrackScreen> {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment<int>(
-                  value: 0,
-                  label: Text('트랙'),
-                  icon: Icon(Icons.show_chart_rounded, size: 18),
-                ),
-                ButtonSegment<int>(
-                  value: 1,
-                  label: Text('배지'),
-                  icon: Icon(Icons.emoji_events_outlined, size: 18),
-                ),
-              ],
-              selected: {_tab},
-              onSelectionChanged: (next) {
-                if (next.isEmpty) return;
-                setState(() => _tab = next.first);
-              },
-            ),
-          ),
-          Expanded(
-            child: _tab == 0
-                ? _FlowTrackTab(
-                    asyncSegs: asyncSegs,
-                    asyncTarget: asyncTarget,
-                    lineColor: _lineColor,
-                    tierLevel: _tierLevel,
-                  )
-                : _FlowBadgesTab(progress: progress),
-          ),
-        ],
-      ),
+      body: body,
     );
   }
 }

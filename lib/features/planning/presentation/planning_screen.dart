@@ -7,8 +7,6 @@ import 'package:uuid/uuid.dart';
 import '../../ai_agent/presentation/ai_assistant_hub.dart';
 import '../../ai_agent/presentation/ai_providers.dart';
 import '../../coach/presentation/coach_nudge_controller.dart';
-import '../../focus_session/domain/focus_log_event.dart';
-import '../../focus_session/presentation/focus_log_providers.dart';
 import '../../gamification/presentation/gamification_providers.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../../home/presentation/widgets/today_project_hero.dart';
@@ -16,6 +14,7 @@ import '../../home/presentation/widgets/today_task_grid_card.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
+import 'planning_actions.dart';
 import 'planning_providers.dart';
 
 /// 오늘 블록 — 홈「오늘의 프로젝트」와 동일한 히어로·카드 디자인, 편집 기능 포함.
@@ -195,10 +194,12 @@ class PlanningScreen extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _BottomAction(
-                      icon: Icons.date_range_outlined,
-                      label: '주간',
-                      onTap: () => context.push('/plan/week'),
+                    Expanded(
+                      child: _BottomAction(
+                        icon: Icons.home_rounded,
+                        label: '홈',
+                        onTap: () => context.go('/'),
+                      ),
                     ),
                     Expanded(
                       child: Align(
@@ -214,18 +215,27 @@ class PlanningScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(18),
                             onTap: () => context.push('/plan/select'),
                             child: const SizedBox(
-                              width: 56,
-                              height: 56,
+                              width: 48,
+                              height: 48,
                               child: Icon(Icons.add, color: Colors.white, size: 28),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    _BottomAction(
-                      icon: Icons.person_outline,
-                      label: '프로필',
-                      onTap: () => context.go('/profile'),
+                    Expanded(
+                      child: _BottomAction(
+                        icon: Icons.date_range_outlined,
+                        label: '주간',
+                        onTap: () => context.push('/plan/week'),
+                      ),
+                    ),
+                    Expanded(
+                      child: _BottomAction(
+                        icon: Icons.person_outline,
+                        label: '프로필',
+                        onTap: () => context.go('/profile'),
+                      ),
                     ),
                   ],
                 ),
@@ -242,28 +252,12 @@ class PlanningScreen extends ConsumerWidget {
       block: b,
       onTap: () {},
       onSparkle: () => openAiTodayPlanProposal(context, ref),
-      onToggleUnitDone: (unitId, done) async {
-              final repo = ref.read(planningRepositoryProvider);
-              final wasAllDone = b.units.every((u) => u.isDone);
-              final updatedUnits =
-                  b.units.map((u) => u.id == unitId ? u.copyWith(isDone: done) : u).toList();
-              final nowAllDone = updatedUnits.every((u) => u.isDone);
-              await repo.updateBlock(b.copyWith(units: updatedUnits));
-              ref.invalidate(todayBlocksProvider);
-              ref.invalidate(backlogBlocksProvider);
-              ref.invalidate(canAddNewBlockProvider);
-              if (!wasAllDone && nowAllDone) {
-                ref.read(playerProgressProvider.notifier).grantBlockComplete(blockId: b.id);
-                await ref.read(focusLogRepositoryProvider).append(
-                      FocusLogEvent(
-                        type: FocusLogEventType.blockCompleted,
-                        tsMs: DateTime.now().millisecondsSinceEpoch,
-                        dateKey: todayDateKey(),
-                        meta: {'blockTitle': b.title},
-                      ),
-                    );
-              }
-            },
+      onToggleUnitDone: (unitId, done) => toggleTaskUnitDone(
+        ref: ref,
+        block: b,
+        unitId: unitId,
+        done: done,
+      ),
       onEditChecklist: () => _editTodayChecklist(context, ref, b),
       onSetCurrentTask: b.isFullyComplete ? null : () => _setAsCurrentTask(context, ref, b),
       onDecompose: b.isFullyComplete

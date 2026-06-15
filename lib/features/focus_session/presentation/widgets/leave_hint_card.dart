@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_chrome.dart';
-
 class LeaveHintCard extends StatelessWidget {
   const LeaveHintCard({super.key, required this.text});
 

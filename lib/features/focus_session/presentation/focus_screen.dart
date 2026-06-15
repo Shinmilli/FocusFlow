@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/layout/desktop_nav_rail.dart';
+import '../../../app/layout/responsive_layout.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../../ai_agent/presentation/ai_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
 import '../../planning/presentation/planning_providers.dart';
-import '../../planning/domain/task_block.dart';
+import 'focus_desktop_side_panel.dart';
+import 'widgets/focus_checklist_panel.dart';
 import '../domain/focus_log_event.dart';
 import 'focus_log_providers.dart';
 import 'widgets/leave_hint_card.dart';
@@ -27,6 +30,7 @@ class FocusScreen extends ConsumerStatefulWidget {
 class _FocusScreenState extends ConsumerState<FocusScreen>
     with WidgetsBindingObserver {
   static const int _breakDurationSec = 5 * 60;
+  static const double _expandedSideInset = 50;
 
   Timer? _timer;
   int _remainingSec = 50 * 60;
@@ -195,6 +199,7 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
   @override
   Widget build(BuildContext context) {
     final asyncBlocks = ref.watch(todayBlocksProvider);
+    final expanded = ResponsiveLayout.isExpanded(context);
     final total = _sessionTotalSec <= 0 ? 1 : _sessionTotalSec;
     final flow = _running && !_onBreak ? (1.0 - (_remainingSec / total)).clamp(0.0, 1.0) : 0.0;
     final ringProgress = _onBreak ? _frozenRingProgress : flow;
@@ -203,6 +208,139 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
         ? '5분 휴식'
         : (_running ? _format(_remainingSec) : '시작 대기');
     const breakCenterColor = Color(0xFF0D9F6C);
+
+    final timerBody = _buildTimerBody(
+      context,
+      headline: headline,
+      breakCenterColor: breakCenterColor,
+      ringProgress: ringProgress,
+    );
+
+    final sideExtras = asyncBlocks.when(
+      loading: () => expanded
+          ? const SizedBox(
+              width: FocusDesktopSidePanel.width,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (blocks) {
+        if (expanded) {
+          return FocusDesktopSidePanel(
+            blocks: blocks,
+            taskLookupNotLeave: _taskLookupNotLeave,
+            lookupToggleEnabled: _countdown == 0,
+            onTaskLookupChanged: (v) => setState(() => _taskLookupNotLeave = v),
+            onNudge: _onNudgeSheet,
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_leaveHint != null) ...[
+              LeaveHintCard(text: _leaveHint!),
+              const SizedBox(height: 16),
+            ],
+            FocusChecklistPanel(blocks: blocks),
+            const SizedBox(height: 16),
+            const ParkedThoughtsCard(),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _onNudgeSheet,
+              icon: const Icon(Icons.psychology_alt_outlined),
+              label: const Text('딴생각 정리 (AI)'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF2C3140),
+                side: const BorderSide(color: AppChrome.softBorder),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (expanded) {
+      return Scaffold(
+        backgroundColor: AppChrome.pageBackground,
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const DesktopNavRail(),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Material(
+                    color: AppChrome.topBarBackground,
+                    child: SafeArea(
+                      bottom: false,
+                      child: SizedBox(
+                        height: 52,
+                        child: Center(
+                          child: Text(
+                            '집중 모드',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppChrome.topBarForeground,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    _expandedSideInset,
+                                    16,
+                                    _expandedSideInset,
+                                    16,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      timerBody,
+                                      if (_leaveHint != null) ...[
+                                        const SizedBox(height: 16),
+                                        LeaveHintCard(text: _leaveHint!),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Material(
+                                elevation: 8,
+                                shadowColor: Colors.black12,
+                                color: AppChrome.pageBackground,
+                                child: _buildBottomActionBar(bottomInset, expanded: true),
+                              ),
+                            ],
+                          ),
+                        ),
+                        sideExtras,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppChrome.pageBackground,
@@ -225,119 +363,9 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (_countdown > 0) ...[
-                      const SizedBox(height: 24),
-                      Text(
-                        '$_countdown',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                              color: const Color(0xFF2C3140),
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '곧 집중이 시작돼요',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFF6B7080),
-                            ),
-                      ),
-                    ] else ...[
-                      const SizedBox(height: 25),
-                      Center(
-                        child: SegmentedButton<int>(
-                          segments: const [
-                            ButtonSegment<int>(value: 50, label: Text('50분')),
-                            ButtonSegment<int>(value: 25, label: Text('25분')),
-                          ],
-                          selected: {_selectedMinutes},
-                          onSelectionChanged: (_running || _onBreak)
-                              ? null
-                              : (next) {
-                                  if (next.isEmpty) return;
-                                  setState(() {
-                                    _selectedMinutes = next.first;
-                                    _sessionTotalSec = _selectedMinutes * 60;
-                                    _remainingSec = _sessionTotalSec;
-                                  });
-                                },
-                        ),
-                      ),
-                      const SizedBox(height: 25),
-                      Text(
-                        headline,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              color: _onBreak ? breakCenterColor : const Color(0xFF2C3140),
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      const SizedBox(height: 40),
-                      TimeFlowRing(
-                        progress: ringProgress.clamp(0.0, 1.0),
-                        centerLabel: _onBreak ? _format(_breakRemainingSec) : _format(_remainingSec),
-                        centerColor: _onBreak ? breakCenterColor : null,
-                      ),
-                      const SizedBox(height: 40),
-                      DecoratedBox(
-                        decoration: AppChrome.softCardDecoration(),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '이탈이 아니라 자료찾기 중이에요!',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        color: const Color(0xFF2C3140),
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.3,
-                                      ),
-                                ),
-                              ),
-                              Switch.adaptive(
-                                value: _taskLookupNotLeave,
-                                onChanged: _countdown > 0
-                                    ? null
-                                    : (v) => setState(() => _taskLookupNotLeave = v),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (_leaveHint != null) ...[
-                      const SizedBox(height: 16),
-                      LeaveHintCard(text: _leaveHint!),
-                    ],
+                    timerBody,
                     const SizedBox(height: 16),
-                    asyncBlocks.when(
-                      loading: () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                      error: (_, __) => const SizedBox.shrink(),
-                      data: (blocks) => _FocusChecklistCard(
-                        blocks: blocks,
-                        onToggle: (block, unitId, done) => _toggleUnit(block, unitId, done),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const ParkedThoughtsCard(),
-                    const SizedBox(height: 20),
-                    OutlinedButton.icon(
-                      onPressed: _onNudgeSheet,
-                      icon: const Icon(Icons.psychology_alt_outlined),
-                      label: const Text('딴생각 정리 (AI)'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF2C3140),
-                        side: const BorderSide(color: AppChrome.softBorder),
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      ),
-                    ),
+                    sideExtras,
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -347,12 +375,137 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
               elevation: 8,
               shadowColor: Colors.black12,
               color: AppChrome.pageBackground,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 10, 20, 12 + bottomInset),
-                child: _buildBottomPrimaryButton(),
-              ),
+              child: _buildBottomActionBar(bottomInset, expanded: false),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimerBody(
+    BuildContext context, {
+    required String headline,
+    required Color breakCenterColor,
+    required double ringProgress,
+  }) {
+    if (_countdown > 0) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 24),
+          Text(
+            '$_countdown',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  color: const Color(0xFF2C3140),
+                ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '곧 집중이 시작돼요',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: const Color(0xFF6B7080),
+                ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 25),
+        Center(
+          child: SegmentedButton<int>(
+            segments: const [
+              ButtonSegment<int>(value: 50, label: Text('50분')),
+              ButtonSegment<int>(value: 25, label: Text('25분')),
+            ],
+            selected: {_selectedMinutes},
+            onSelectionChanged: (_running || _onBreak)
+                ? null
+                : (next) {
+                    if (next.isEmpty) return;
+                    setState(() {
+                      _selectedMinutes = next.first;
+                      _sessionTotalSec = _selectedMinutes * 60;
+                      _remainingSec = _sessionTotalSec;
+                    });
+                  },
+          ),
+        ),
+        const SizedBox(height: 25),
+        Text(
+          headline,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: _onBreak ? breakCenterColor : const Color(0xFF2C3140),
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 40),
+        TimeFlowRing(
+          progress: ringProgress.clamp(0.0, 1.0),
+          centerLabel: _onBreak ? _format(_breakRemainingSec) : _format(_remainingSec),
+          centerColor: _onBreak ? breakCenterColor : null,
+        ),
+        if (!ResponsiveLayout.isExpanded(context)) ...[
+          const SizedBox(height: 40),
+          DecoratedBox(
+            decoration: AppChrome.softCardDecoration(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      '이탈이 아니라 자료찾기 중이에요!',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF2C3140),
+                            fontWeight: FontWeight.w600,
+                            height: 1.3,
+                          ),
+                    ),
+                  ),
+                  Switch.adaptive(
+                    value: _taskLookupNotLeave,
+                    onChanged: (v) => setState(() => _taskLookupNotLeave = v),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBottomActionBar(double bottomInset, {required bool expanded}) {
+    if (expanded) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(
+          _expandedSideInset,
+          10,
+          _expandedSideInset,
+          12 + bottomInset,
+        ),
+        child: _buildBottomPrimaryButton(),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(32, 18, 32, 18 + bottomInset),
+      child: Align(
+        alignment: Alignment.center,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: SizedBox(
+            width: double.infinity,
+            child: _buildBottomPrimaryButton(),
+          ),
         ),
       ),
     );
@@ -421,88 +574,5 @@ class _FocusScreenState extends ConsumerState<FocusScreen>
     final m = sec ~/ 60;
     final s = sec % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _toggleUnit(TaskBlock block, String unitId, bool done) async {
-    final repo = ref.read(planningRepositoryProvider);
-    final next = block.units
-        .map((u) => u.id == unitId ? u.copyWith(isDone: done) : u)
-        .toList();
-
-    await repo.updateBlock(block.copyWith(units: next));
-    ref.invalidate(todayBlocksProvider);
-    ref.invalidate(backlogBlocksProvider);
-    ref.invalidate(canAddNewBlockProvider);
-  }
-}
-
-class _FocusChecklistCard extends StatelessWidget {
-  const _FocusChecklistCard({
-    required this.blocks,
-    required this.onToggle,
-  });
-
-  final List<TaskBlock> blocks;
-  final Future<void> Function(TaskBlock block, String unitId, bool done) onToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    final current = blocks.firstWhere(
-      (b) => !b.isFullyComplete,
-      orElse: () => blocks.isEmpty ? TaskBlock(id: '', title: '', units: []) : blocks.first,
-    );
-    if (current.id.isEmpty || current.units.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: AppChrome.softCardDecoration(),
-        child: Text(
-          '오늘 블록이 없거나 단계가 없어요. “오늘 블록”에서 추가/쪼개기를 해보세요.',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFF6B7080),
-              ),
-        ),
-      );
-    }
-
-    final view = current.units.take(6).toList();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
-      decoration: AppChrome.softCardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '지금 할 일',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppChrome.heroAccentBlue,
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            current.title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: const Color(0xFF2C3140),
-                  fontWeight: FontWeight.w800,
-                  height: 1.25,
-                ),
-          ),
-          const SizedBox(height: 8),
-          for (final u in view)
-            CheckboxListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              value: u.isDone,
-              title: Text(
-                u.title,
-                style: const TextStyle(color: Color(0xFF2C3140)),
-              ),
-              onChanged: (v) => onToggle(current, u.id, v ?? false),
-            ),
-        ],
-      ),
-    );
   }
 }

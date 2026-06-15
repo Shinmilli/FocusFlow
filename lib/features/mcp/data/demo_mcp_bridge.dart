@@ -1,17 +1,54 @@
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../user_state/domain/user_life_context.dart';
+import '../domain/external_item.dart';
 import '../domain/mcp_bridge.dart';
 
-/// 서버/MCP 호스트 없이 UX·포지셔닝용 데모. 실제 OAuth·API는 추후 백엔드와 연결.
+/// API 없이 UX 확인용 데모. 기기 캘린더는 FocusFlowMcpBridge에서 처리.
 class DemoMcpBridge implements McpBridge {
   @override
-  Future<List<String>> fetchExternalTasksPreview() async {
+  Future<McpConnectionStatus> fetchConnectionStatus() async {
+    return McpConnectionStatus.offline();
+  }
+
+  @override
+  Future<String?> startOAuth(McpOAuthProvider provider) async => null;
+
+  @override
+  Future<void> disconnect(McpOAuthProvider provider) async {}
+
+  @override
+  Future<List<ExternalItem>> fetchExternalItems() async {
     return const [
-      '(데모) Google Calendar — 오늘 일정 미리보기',
-      '(데모) Notion — 할 일 블록 불러오기',
-      '(데모) 학교 LMS — 마감 과제 요약',
+      ExternalItem(
+        source: 'google_calendar',
+        title: '(데모) 팀 미팅 14:00',
+        kind: 'event',
+      ),
+      ExternalItem(
+        source: 'notion',
+        title: '(데모) 레포트 초안 작성',
+        kind: 'task',
+      ),
+      ExternalItem(
+        source: 'device_calendar',
+        title: '(데모) 삼성 캘린더 — 병원 예약',
+        kind: 'event',
+      ),
     ];
   }
+
+  @override
+  Future<McpOrganizeProposal> organizeWithAi({
+    required List<ExternalItem> items,
+    required UserLifeContext lifeContext,
+    required List<String> existingTitles,
+  }) async {
+    return fallbackOrganizeProposal(items: items, lifeContext: lifeContext);
+  }
+
+  @override
+  Future<List<String>> fetchExternalTasksPreview() => defaultExternalTasksPreview(this);
 
   @override
   Future<void> openCrisisResourcesUri() async {
@@ -22,7 +59,5 @@ class DemoMcpBridge implements McpBridge {
   }
 
   @override
-  Future<void> rescheduleCalendar({required String rationale}) async {
-    // 실제 연동 시: 백엔드 MCP가 캘린더 API 호출.
-  }
+  Future<void> rescheduleCalendar({required String rationale}) async {}
 }

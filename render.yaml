@@ -15,6 +15,20 @@ services:
         generateValue: true
       - key: JWT_EXPIRES
         value: 7d
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: NOTION_CLIENT_ID
+        sync: false
+      - key: NOTION_CLIENT_SECRET
+        sync: false
+      - key: NOTION_REDIRECT_URI
+        sync: false
       # Set CORS_ORIGIN to your Flutter web origin(s), comma-separated, e.g. https://your-app.web.app
       - key: CORS_ORIGIN
         sync: false

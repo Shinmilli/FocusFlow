@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import pg from "pg";
 
 import { geminiGenerateJson, geminiGenerateText } from "./gemini.js";
+import { registerMcpRoutes } from "./mcp/routes.js";
 
 const { Pool } = pg;
 
@@ -280,6 +281,13 @@ app.post("/ai/gemini-json", authMiddleware, async (req, res) => {
     console.error("Gemini JSON error:", e);
     return res.status(502).json({ error: String(e?.message || e) });
   }
+});
+
+registerMcpRoutes(app, {
+  pool,
+  authMiddleware,
+  geminiApiKey: GEMINI_API_KEY,
+  geminiModel: GEMINI_MODEL,
 });
 
 app.post("/ai/gemini-text", authMiddleware, async (req, res) => {

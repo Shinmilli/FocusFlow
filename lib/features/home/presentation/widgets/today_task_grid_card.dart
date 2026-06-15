@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../planning/domain/task_block.dart';
 import '../../../planning/domain/task_unit.dart';
+import 'home_task_grid_layout.dart';
 
 /// 오늘 블록 그리드용 카드 (다크·화이트·라벤더 변형 + 원형 진행률).
 class TodayTaskGridCard extends StatelessWidget {
@@ -74,12 +75,6 @@ class TodayTaskGridCard extends StatelessWidget {
     final plainWhite = !complete && !current;
     final planningInteractions = onToggleUnitDone != null;
 
-    final sw = MediaQuery.sizeOf(context).width;
-    final wideLayout = sw >= 600;
-    final donutSize = wideLayout ? 108.0 : 80.0;
-    final donutFontSize = wideLayout ? 18.0 : 15.0;
-    final donutStroke = wideLayout ? 7.0 : 6.0;
-
     Widget listSection() {
       if (onToggleUnitDone != null) {
         return _InteractiveUnitList(
@@ -106,201 +101,211 @@ class TodayTaskGridCard extends StatelessWidget {
       );
     }
 
-    final donut = SizedBox(
-      width: donutSize,
-      height: donutSize,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.all(2),
-              child: CircularProgressIndicator(
-                value: complete ? 1 : ratio.clamp(0.0, 1.0),
-                strokeWidth: donutStroke,
-                strokeAlign: BorderSide.strokeAlignInside,
-                backgroundColor: ringTrack,
-                color: ringProgress,
-              ),
-            ),
-          ),
-          Text(
-            '${complete ? 100 : (ratio * 100).round()}%',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: donutFontSize,
-              fontWeight: FontWeight.w800,
-              color: titleColor,
-              height: 1,
-            ),
-          ),
-        ],
-      ),
-    );
-
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(26),
       side: plainWhite ? const BorderSide(color: Color(0xFFE4E8F0)) : BorderSide.none,
     );
 
-    return Material(
-      color: bg,
-      shape: shape,
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 3, 4, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (current && !complete)
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: primary.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      child: Text(
-                        '현재작업',
-                        style: TextStyle(
-                          color: primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          height: 1,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardW = constraints.maxWidth;
+        final wideLayout = cardW >= HomeTaskGridLayout.wideCardMinWidth;
+        final donutSize = wideLayout ? 108.0 : 80.0;
+        final donutFontSize = wideLayout ? 18.0 : 15.0;
+        final donutStroke = wideLayout ? 7.0 : 6.0;
+
+        final donut = SizedBox(
+          width: donutSize,
+          height: donutSize,
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: CircularProgressIndicator(
+                    value: complete ? 1 : ratio.clamp(0.0, 1.0),
+                    strokeWidth: donutStroke,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                    backgroundColor: ringTrack,
+                    color: ringProgress,
+                  ),
+                ),
+              ),
+              Text(
+                '${complete ? 100 : (ratio * 100).round()}%',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: donutFontSize,
+                  fontWeight: FontWeight.w800,
+                  color: titleColor,
+                  height: 1,
+                ),
+              ),
+            ],
+          ),
+        );
+
+        return Material(
+          color: bg,
+          shape: shape,
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 3, 4, 0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (current && !complete)
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: primary.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          child: Text(
+                            '현재작업',
+                            style: TextStyle(
+                              color: primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              height: 1,
+                            ),
+                          ),
                         ),
                       ),
+                    const Spacer(),
+                    PopupMenuButton<String>(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                      iconSize: 22,
+                      splashRadius: 22,
+                      icon: Icon(
+                        Icons.more_horiz_rounded,
+                        color: current && !complete ? Colors.white.withValues(alpha: 0.88) : bodyColor,
+                      ),
+                      color: Colors.white,
+                      surfaceTintColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      onSelected: (value) {
+                        if (value == 'plan') {
+                          onTap();
+                        } else if (value == 'edit') {
+                          onEditChecklist?.call();
+                        } else if (value == 'current') {
+                          onSetCurrentTask?.call();
+                        } else if (value == 'decompose') {
+                          onDecompose?.call();
+                        } else if (value == 'delete') {
+                          onDelete?.call();
+                        }
+                      },
+                      itemBuilder: (context) {
+                        final entries = <PopupMenuEntry<String>>[];
+                        if (planningInteractions) {
+                          if (onEditChecklist != null) {
+                            entries.add(
+                              const PopupMenuItem(value: 'edit', child: Text('체크리스트 수정')),
+                            );
+                          }
+                          if (onSetCurrentTask != null && !complete) {
+                            entries.add(
+                              const PopupMenuItem(value: 'current', child: Text('현재 작업으로')),
+                            );
+                          }
+                          if (onDecompose != null && !complete) {
+                            entries.add(
+                              const PopupMenuItem(value: 'decompose', child: Text('AI로 더 쪼개기')),
+                            );
+                          }
+                          if (onDelete != null) {
+                            entries.add(
+                              const PopupMenuItem(value: 'delete', child: Text('삭제')),
+                            );
+                          }
+                        } else {
+                          entries.add(
+                            const PopupMenuItem(value: 'plan', child: Text('오늘 블록에서 편집')),
+                          );
+                        }
+                        return entries;
+                      },
                     ),
-                  ),
-                const Spacer(),
-                PopupMenuButton<String>(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
-                  iconSize: 22,
-                  splashRadius: 22,
-                  icon: Icon(
-                    Icons.more_horiz_rounded,
-                    color: current && !complete ? Colors.white.withValues(alpha: 0.88) : bodyColor,
-                  ),
-                  color: Colors.white,
-                  surfaceTintColor: Colors.transparent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  onSelected: (value) {
-                    if (value == 'plan') {
-                      onTap();
-                    } else if (value == 'edit') {
-                      onEditChecklist?.call();
-                    } else if (value == 'current') {
-                      onSetCurrentTask?.call();
-                    } else if (value == 'decompose') {
-                      onDecompose?.call();
-                    } else if (value == 'delete') {
-                      onDelete?.call();
-                    }
-                  },
-                  itemBuilder: (context) {
-                    final entries = <PopupMenuEntry<String>>[];
-                    if (planningInteractions) {
-                      if (onEditChecklist != null) {
-                        entries.add(
-                          const PopupMenuItem(value: 'edit', child: Text('체크리스트 수정')),
-                        );
-                      }
-                      if (onSetCurrentTask != null && !complete) {
-                        entries.add(
-                          const PopupMenuItem(value: 'current', child: Text('현재 작업으로')),
-                        );
-                      }
-                      if (onDecompose != null && !complete) {
-                        entries.add(
-                          const PopupMenuItem(value: 'decompose', child: Text('AI로 더 쪼개기')),
-                        );
-                      }
-                      if (onDelete != null) {
-                        entries.add(
-                          const PopupMenuItem(value: 'delete', child: Text('삭제')),
-                        );
-                      }
-                    } else {
-                      entries.add(
-                        const PopupMenuItem(value: 'plan', child: Text('오늘 블록에서 편집')),
-                      );
-                    }
-                    return entries;
-                  },
+                  ],
                 ),
-              ],
-            ),
-          ),
-          InkWell(
-            onTap: planningInteractions ? null : onTap,
-            borderRadius: BorderRadius.circular(26),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 8, 10),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              ),
+              InkWell(
+                onTap: planningInteractions ? null : onTap,
+                borderRadius: BorderRadius.circular(26),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 8, 10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          block.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: titleColor,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            height: 1.15,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              block.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: titleColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                height: 1.15,
+                              ),
+                            ),
                           ),
-                        ),
+                          if (onSparkle != null) ...[
+                            const SizedBox(width: 2),
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                              onPressed: onSparkle,
+                              icon: Icon(
+                                Icons.auto_awesome,
+                                size: 20,
+                                color: current && !complete
+                                    ? Colors.white.withValues(alpha: 0.92)
+                                    : bodyColor.withValues(alpha: 0.92),
+                              ),
+                              tooltip: 'AI',
+                            ),
+                          ],
+                        ],
                       ),
-                      if (onSparkle != null) ...[
-                        const SizedBox(width: 2),
-                        IconButton(
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                          onPressed: onSparkle,
-                          icon: Icon(
-                            Icons.auto_awesome,
-                            size: 20,
-                            color: current && !complete
-                                ? Colors.white.withValues(alpha: 0.92)
-                                : bodyColor.withValues(alpha: 0.92),
-                          ),
-                          tooltip: 'AI',
-                        ),
+                      const SizedBox(height: 4),
+                      if (wideLayout)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: listSection()),
+                            const SizedBox(width: 10),
+                            donut,
+                          ],
+                        )
+                      else ...[
+                        listSection(),
+                        const SizedBox(height: 6),
+                        Align(alignment: Alignment.bottomRight, child: donut),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  if (wideLayout)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: listSection()),
-                        const SizedBox(width: 10),
-                        donut,
-                      ],
-                    )
-                  else ...[
-                    listSection(),
-                    const SizedBox(height: 6),
-                    Align(alignment: Alignment.bottomRight, child: donut),
-                  ],
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

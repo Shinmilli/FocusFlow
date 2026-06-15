@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../app/layout/responsive_layout.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
 import 'planning_providers.dart';
+import 'week_day_plan_edit_screen.dart';
 import 'widgets/today_pick_tile.dart';
 
 class WeekSelectScreen extends ConsumerStatefulWidget {
@@ -64,10 +66,200 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     final asyncSelectedBlocks = ref.watch(blocksForDateProvider(selectedKey));
 
     final shell = StatefulNavigationShell.maybeOf(context);
+    final expanded = ResponsiveLayout.isExpanded(context);
+
+    Widget buildPlanList(List<TaskBlock> selectedBlocks) {
+      final selected = selectedBlocks.map((b) => b.id).toSet();
+      final todos = selectedBlocks.where((b) => !b.isFullyComplete).toList();
+      final dones = selectedBlocks.where((b) => b.isFullyComplete).toList();
+
+      return ListView(
+        padding: EdgeInsets.fromLTRB(16, expanded ? 16 : 0, 16, 24),
+        children: [
+          if (expanded)
+            Text(
+              '이번 주 조정',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1A1C26),
+                  ),
+            ),
+          if (expanded) const SizedBox(height: 8),
+          Text(
+            '일주일 단위로 날짜별 계획을 조정해요.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF5C6378),
+                ),
+          ),
+          const SizedBox(height: 12),
+          _WeekStrip(
+            days: days,
+            selected: _selectedDay,
+            onSelect: (d) => setState(() => _selectedDay = d),
+          ),
+          const SizedBox(height: 16),
+          if (!isToday)
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: AppChrome.softCardDecoration(),
+              child: Text(
+                '지금은 ${_selectedDay.month}/${_selectedDay.day} 계획을 보고 있어요.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: const Color(0xFF5C6378),
+                    ),
+              ),
+            ),
+          if (!isToday) const SizedBox(height: 16),
+          Text(
+            'Plan list',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF5C6378),
+                  letterSpacing: 0.4,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '끝낸 리스트 · ${dones.length}개',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2C3140),
+                ),
+          ),
+          const SizedBox(height: 8),
+          if (dones.isEmpty)
+            Text(
+              '이 날짜에 완료된 블록이 없어요.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.grey.shade600,
+                  ),
+            )
+          else
+            for (final b in dones)
+              TodayPickTile(
+                block: b,
+                selected: selected.contains(b.id),
+                disabled: false,
+                maxReached: false,
+                variant: TodayPickTileVariant.weekPlan,
+                onDelete: () => _confirmDeleteBlock(context, ref, b),
+                onEditChecklist: () => _editBacklogChecklist(context, ref, selectedKey, b),
+                onMoveToTodoList: () => _moveToTodoList(context, ref, selectedKey, b),
+                onChanged: (next) => _onPickChanged(
+                  context,
+                  ref,
+                  selectedKey,
+                  b,
+                  selected,
+                  next,
+                ),
+              ),
+          const SizedBox(height: 20),
+          Text(
+            '할 리스트 · ${todos.length}개',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF2C3140),
+                ),
+          ),
+          const SizedBox(height: 8),
+          if (todos.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                expanded
+                    ? '아직 넣은 블록이 없어요. 오른쪽에서 백로그·새 블록으로 채울 수 있어요.'
+                    : '아직 넣은 블록이 없어요. 편집에서 백로그·새 블록으로 채울 수 있어요.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+              ),
+            )
+          else
+            for (final b in todos)
+              TodayPickTile(
+                block: b,
+                selected: selected.contains(b.id),
+                disabled: false,
+                maxReached: false,
+                variant: TodayPickTileVariant.weekPlan,
+                onDelete: () => _confirmDeleteBlock(context, ref, b),
+                onEditChecklist: () => _editBacklogChecklist(context, ref, selectedKey, b),
+                onMoveToDoneList: () => _moveToDoneList(context, ref, selectedKey, b),
+                onChanged: (next) => _onPickChanged(
+                  context,
+                  ref,
+                  selectedKey,
+                  b,
+                  selected,
+                  next,
+                ),
+              ),
+          if (!expanded) ...[
+            const SizedBox(height: 24),
+            Text(
+              '편집',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF5C6378),
+                    letterSpacing: 0.3,
+                  ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: AppChrome.softCardDecoration(),
+              child: FilledButton.tonalIcon(
+                onPressed: () => context.push(
+                  '/plan/week/edit?date=${Uri.encodeQueryComponent(selectedKey)}',
+                ),
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('이 날짜 계획 편집'),
+                style: FilledButton.styleFrom(
+                  foregroundColor: AppChrome.heroCardDark,
+                  backgroundColor: const Color(0xFFE8ECF8),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+    }
+
+    final content = asyncSelectedBlocks.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('$e')),
+      data: buildPlanList,
+    );
+
+    final body = expanded
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 420,
+                child: content,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                  child: WeekDayPlanEditScreen(
+                    key: ValueKey(selectedKey),
+                    dateKey: selectedKey,
+                    embedded: true,
+                  ),
+                ),
+              ),
+            ],
+          )
+        : content;
 
     return Scaffold(
       backgroundColor: AppChrome.pageBackground,
-      appBar: AppBar(
+      appBar: expanded
+          ? null
+          : AppBar(
         backgroundColor: AppChrome.topBarBackground,
         foregroundColor: AppChrome.topBarForeground,
         surfaceTintColor: Colors.transparent,
@@ -84,155 +276,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
             : null,
         automaticallyImplyLeading: shell == null,
       ),
-      body: asyncSelectedBlocks.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
-        data: (selectedBlocks) {
-          final selected = selectedBlocks.map((b) => b.id).toSet();
-          final todos = selectedBlocks.where((b) => !b.isFullyComplete).toList();
-          final dones = selectedBlocks.where((b) => b.isFullyComplete).toList();
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            children: [
-              Text(
-                '일주일 단위로 날짜별 계획을 조정해요.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF5C6378),
-                    ),
-              ),
-              const SizedBox(height: 12),
-              _WeekStrip(
-                days: days,
-                selected: _selectedDay,
-                onSelect: (d) => setState(() => _selectedDay = d),
-              ),
-              const SizedBox(height: 16),
-              if (!isToday)
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: AppChrome.softCardDecoration(),
-                  child: Text(
-                    '지금은 ${_selectedDay.month}/${_selectedDay.day} 계획을 보고 있어요.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF5C6378),
-                        ),
-                  ),
-                ),
-              if (!isToday) const SizedBox(height: 16),
-              Text(
-                'Plan list',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF5C6378),
-                      letterSpacing: 0.4,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '끝낸 리스트 · ${dones.length}개',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2C3140),
-                    ),
-              ),
-              const SizedBox(height: 8),
-              if (dones.isEmpty)
-                Text(
-                  '이 날짜에 완료된 블록이 없어요.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
-                      ),
-                )
-              else
-                for (final b in dones)
-                  TodayPickTile(
-                    block: b,
-                    selected: selected.contains(b.id),
-                    disabled: false,
-                    maxReached: false,
-                    variant: TodayPickTileVariant.weekPlan,
-                    onDelete: () => _confirmDeleteBlock(context, ref, b),
-                    onEditChecklist: () => _editBacklogChecklist(context, ref, selectedKey, b),
-                    onMoveToTodoList: () => _moveToTodoList(context, ref, selectedKey, b),
-                    onChanged: (next) => _onPickChanged(
-                      context,
-                      ref,
-                      selectedKey,
-                      b,
-                      selected,
-                      next,
-                    ),
-                  ),
-              const SizedBox(height: 20),
-              Text(
-                '할 리스트 · ${todos.length}개',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF2C3140),
-                    ),
-              ),
-              const SizedBox(height: 8),
-              if (todos.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '아직 넣은 블록이 없어요. 편집에서 백로그·새 블록으로 채울 수 있어요.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
-                  ),
-                )
-              else
-                for (final b in todos)
-                  TodayPickTile(
-                    block: b,
-                    selected: selected.contains(b.id),
-                    disabled: false,
-                    maxReached: false,
-                    variant: TodayPickTileVariant.weekPlan,
-                    onDelete: () => _confirmDeleteBlock(context, ref, b),
-                    onEditChecklist: () => _editBacklogChecklist(context, ref, selectedKey, b),
-                    onMoveToDoneList: () => _moveToDoneList(context, ref, selectedKey, b),
-                    onChanged: (next) => _onPickChanged(
-                      context,
-                      ref,
-                      selectedKey,
-                      b,
-                      selected,
-                      next,
-                    ),
-                  ),
-              const SizedBox(height: 24),
-              Text(
-                '편집',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF5C6378),
-                      letterSpacing: 0.3,
-                    ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: AppChrome.softCardDecoration(),
-                child: FilledButton.tonalIcon(
-                  onPressed: () => context.push(
-                    '/plan/week/edit?date=${Uri.encodeQueryComponent(selectedKey)}',
-                  ),
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('이 날짜 계획 편집'),
-                  style: FilledButton.styleFrom(
-                    foregroundColor: AppChrome.heroCardDark,
-                    backgroundColor: const Color(0xFFE8ECF8),
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+      body: expanded ? SafeArea(child: body) : body,
     );
   }
 

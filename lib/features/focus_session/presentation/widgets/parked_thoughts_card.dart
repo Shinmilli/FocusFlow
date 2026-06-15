@@ -7,7 +7,10 @@ import '../focus_log_providers.dart';
 
 /// 딴생각 잠깐 적어두기: 안내 문구 · 빠른 칩 · 직접 입력 · 오늘 목록.
 class ParkedThoughtsCard extends ConsumerStatefulWidget {
-  const ParkedThoughtsCard({super.key});
+  const ParkedThoughtsCard({super.key, this.embedded = false});
+
+  /// 데스크톱 패널 안에 넣을 때 — 바깥 카드·제목 생략.
+  final bool embedded;
 
   @override
   ConsumerState<ParkedThoughtsCard> createState() => _ParkedThoughtsCardState();
@@ -101,13 +104,10 @@ class _ParkedThoughtsCardState extends ConsumerState<ParkedThoughtsCard>
 
         final countLabel = parked.isEmpty ? '0' : '${parked.length}';
 
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-          decoration: AppChrome.softCardDecoration(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        final inner = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!widget.embedded)
               InkWell(
                 onTap: () => setState(() => _expanded = !_expanded),
                 borderRadius: BorderRadius.circular(14),
@@ -149,8 +149,30 @@ class _ParkedThoughtsCardState extends ConsumerState<ParkedThoughtsCard>
                     ],
                   ),
                 ),
+              )
+            else
+              InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                borderRadius: BorderRadius.circular(10),
+                child: Row(
+                  children: [
+                    Text(
+                      '오늘 $countLabel개',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFF6B7080),
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      _expanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                      size: 20,
+                      color: const Color(0xFF2C3140),
+                    ),
+                  ],
+                ),
               ),
-              AnimatedSize(
+            AnimatedSize(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,
                 alignment: Alignment.topCenter,
@@ -302,7 +324,15 @@ class _ParkedThoughtsCardState extends ConsumerState<ParkedThoughtsCard>
                     : const SizedBox.shrink(),
               ),
             ],
-          ),
+          );
+
+        if (widget.embedded) return inner;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+          decoration: AppChrome.softCardDecoration(),
+          child: inner,
         );
       },
     );

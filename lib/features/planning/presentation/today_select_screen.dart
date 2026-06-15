@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../app/layout/desktop_nav_rail.dart';
+import '../../../app/layout/responsive_layout.dart';
 import '../../../app/theme/app_chrome.dart';
+import '../../home/presentation/widgets/home_desktop_side_panel.dart';
 import '../domain/task_block.dart';
 import '../domain/task_unit.dart';
 import 'planning_providers.dart';
@@ -18,102 +22,230 @@ class TodaySelectScreen extends ConsumerStatefulWidget {
 }
 
 class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
+  static BoxDecoration _sidePanelDecoration() {
+    return BoxDecoration(
+      color: AppChrome.pageBackground,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppChrome.softBorder),
+    );
+  }
+
+  Widget _addBlockButton(BuildContext context, {String? label}) {
+    return FilledButton.tonalIcon(
+      onPressed: () => context.push('/plan/add'),
+      icon: const Icon(Icons.add_rounded),
+      label: Text(label ?? '새 블록 추가 (AI로 쪼개기)'),
+      style: FilledButton.styleFrom(
+        foregroundColor: AppChrome.heroCardDark,
+        backgroundColor: const Color(0xFFE8ECF8),
+      ),
+    );
+  }
+
+  List<Widget> _todaySection(
+    BuildContext context,
+    List<TaskBlock> today,
+    Set<String> selected, {
+    required bool expanded,
+  }) {
+    return [
+      Text('오늘', style: Theme.of(context).textTheme.titleSmall),
+      const SizedBox(height: 8),
+      if (today.isEmpty)
+        Text(
+          expanded
+              ? '오늘 고른 블록이 없어요. 오른쪽 백로그에서 골라요.'
+              : '오늘 고른 블록이 없어요. 아래 백로그에서 골라요.',
+          style: Theme.of(context).textTheme.bodySmall,
+        )
+      else
+        for (final b in today)
+          TodayPickTile(
+            block: b.copyWith(isSelectedForToday: true),
+            selected: selected.contains(b.id),
+            disabled: false,
+            maxReached: false,
+            onDelete: () => _confirmDeleteBlock(context, ref, b),
+            onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+            onSetCurrentTask: () => _setCurrentTask(context, ref, b),
+            onChanged: (next) => _onPickChanged(
+              context,
+              ref,
+              b,
+              selected,
+              next,
+            ),
+          ),
+    ];
+  }
+
+  List<Widget> _backlogSection(
+    BuildContext context,
+    List<TaskBlock> backlog,
+    Set<String> selected, {
+    required bool showTitle,
+    required bool addButtonOnRight,
+  }) {
+    return [
+      if (showTitle || addButtonOnRight)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (showTitle)
+              Expanded(
+                child: Text('백로그', style: Theme.of(context).textTheme.titleSmall),
+              ),
+            if (addButtonOnRight) _addBlockButton(context, label: '새 블록 추가'),
+          ],
+        ),
+      if (showTitle || addButtonOnRight) const SizedBox(height: 8),
+      for (final b in backlog)
+        TodayPickTile(
+          block: b,
+          selected: selected.contains(b.id),
+          disabled: false,
+          maxReached: false,
+          onSetCurrentTask: () => _setCurrentTask(context, ref, b),
+          onEditChecklist: () => _editBacklogChecklist(context, ref, b),
+          onDelete: () => _confirmDeleteBlock(context, ref, b),
+          onChanged: (next) => _onPickChanged(
+            context,
+            ref,
+            b,
+            selected,
+            next,
+          ),
+        ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final asyncToday = ref.watch(todayBlocksProvider);
     final asyncBacklog = ref.watch(backlogBlocksProvider);
+    final expanded = ResponsiveLayout.isExpanded(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppChrome.topBarBackground,
-        foregroundColor: AppChrome.topBarForeground,
-        surfaceTintColor: Colors.transparent,
-        title: const Text('오늘 선택'),
-      ),
-      body: asyncToday.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
-        data: (today) {
-          return asyncBacklog.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('$e')),
-            data: (backlog) {
-                  final selected = today.map((b) => b.id).toSet();
+    Widget buildContent(List<TaskBlock> today, List<TaskBlock> backlog) {
+      final selected = today.map((b) => b.id).toSet();
 
-                  return ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      TodaySelectHeader(
-                        selectedCount: selected.length,
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.tonalIcon(
-                        onPressed: () => context.push('/plan/add'),
-                        icon: const Icon(Icons.add),
-                        label: const Text('새 블록 추가 (AI로 쪼개기)'),
-                      ),
-                      const SizedBox(height: 16),
-                      Text('오늘', style: Theme.of(context).textTheme.titleSmall),
-                      const SizedBox(height: 8),
-                      if (today.isEmpty)
+      if (expanded) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const DesktopNavRail(addButtonSelected: true),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    width: 420,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      children: [
                         Text(
-                          '오늘 고른 블록이 없어요. 아래 백로그에서 골라요.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        )
-                      else
-                        for (final b in today)
-                          TodayPickTile(
-                            block: b.copyWith(isSelectedForToday: true),
-                            selected: selected.contains(b.id),
-                            disabled: false,
-                            maxReached: false,
-                            onDelete: () => _confirmDeleteBlock(context, ref, b),
-                            onEditChecklist: () => _editBacklogChecklist(context, ref, b),
-                            onSetCurrentTask: () => _setCurrentTask(context, ref, b),
-                            onChanged: (next) => _onPickChanged(
-                              context,
-                              ref,
-                              b,
-                              selected,
-                              next,
-                            ),
-                          ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Text('백로그', style: Theme.of(context).textTheme.titleSmall),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      for (final b in backlog)
-                        TodayPickTile(
-                          block: b,
-                          selected: selected.contains(b.id),
-                          disabled: false,
-                          maxReached: false,
-                          onSetCurrentTask: () => _setCurrentTask(context, ref, b),
-                          onEditChecklist: () => _editBacklogChecklist(context, ref, b),
-                          onDelete: () => _confirmDeleteBlock(context, ref, b),
-                          onChanged: (next) => _onPickChanged(
+                          '오늘 선택',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1A1C26),
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        TodaySelectHeader(selectedCount: selected.length),
+                        const SizedBox(height: 16),
+                        ..._todaySection(context, today, selected, expanded: true),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          style: AppChrome.primaryActionNavyStyle,
+                          onPressed: () => context.pop(),
+                          child: const Text('완료'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(0, 16, 8, 16),
+                      child: DecoratedBox(
+                        decoration: _sidePanelDecoration(),
+                        child: ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: _backlogSection(
                             context,
-                            ref,
-                            b,
+                            backlog,
                             selected,
-                            next,
+                            showTitle: true,
+                            addButtonOnRight: true,
                           ),
                         ),
-                      const SizedBox(height: 12),
-                      FilledButton(
-                        style: AppChrome.primaryActionNavyStyle,
-                        onPressed: () => context.pop(),
-                        child: const Text('완료'),
                       ),
-                    ],
-                  );
-            },
-          );
-        },
-      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: HomeDesktopSidePanel.minWidth),
+                child: const HomeDesktopSidePanel(),
+              ),
+            ),
+          ],
+        );
+      }
+
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          TodaySelectHeader(selectedCount: selected.length),
+          const SizedBox(height: 12),
+          _addBlockButton(context),
+          const SizedBox(height: 16),
+          ..._todaySection(context, today, selected, expanded: false),
+          const SizedBox(height: 16),
+          ..._backlogSection(
+            context,
+            backlog,
+            selected,
+            showTitle: true,
+            addButtonOnRight: false,
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            style: AppChrome.primaryActionNavyStyle,
+            onPressed: () => context.pop(),
+            child: const Text('완료'),
+          ),
+        ],
+      );
+    }
+
+    final body = asyncToday.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('$e')),
+      data: (today) {
+        return asyncBacklog.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('$e')),
+          data: (backlog) => buildContent(today, backlog),
+        );
+      },
+    );
+
+    return Scaffold(
+      backgroundColor: AppChrome.pageBackground,
+      appBar: expanded
+          ? null
+          : AppBar(
+              backgroundColor: AppChrome.topBarBackground,
+              foregroundColor: AppChrome.topBarForeground,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              systemOverlayStyle: SystemUiOverlayStyle.light,
+              title: const Text('오늘 선택'),
+            ),
+      body: expanded ? SafeArea(child: body) : body,
     );
   }
 

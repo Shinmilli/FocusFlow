@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/layout/responsive_layout.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../../../core/config/api_config.dart';
 import '../../ai_agent/presentation/ai_assistant_hub.dart';
@@ -12,6 +13,7 @@ import '../../coach/data/coach_nudge_prefs.dart';
 import '../../coach/presentation/coach_nudge_providers.dart';
 import '../../gamification/domain/player_progress.dart';
 import '../../gamification/presentation/gamification_providers.dart';
+import 'profile_detail_panel.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -25,6 +27,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _init = false;
   bool _saving = false;
   String? _error;
+  ProfileDetailSection _desktopSection = ProfileDetailSection.track;
 
   @override
   void dispose() {
@@ -69,33 +72,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final signedIn = auth.phase == AuthPhase.authenticated && auth.user != null;
     final shell = StatefulNavigationShell.maybeOf(context);
+    final expanded = ResponsiveLayout.isExpanded(context);
     final accountTitleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w700,
           color: const Color(0xFF1A1C26),
         );
 
-    return Scaffold(
-      backgroundColor: AppChrome.pageBackground,
-      appBar: AppBar(
-        backgroundColor: AppChrome.topBarBackground,
-        foregroundColor: AppChrome.topBarForeground,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        title: const Text('프로필'),
-        leading: shell != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
-                tooltip: '오늘',
-                onPressed: () => shell.goBranch(0),
-              )
-            : null,
-        automaticallyImplyLeading: shell == null,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-        children: [
+    void selectDesktopSection(ProfileDetailSection section) {
+      setState(() => _desktopSection = section);
+    }
+
+    void onFeatureTap(ProfileDetailSection section, VoidCallback mobileAction) {
+      if (expanded) {
+        selectDesktopSection(section);
+      } else {
+        mobileAction();
+      }
+    }
+
+    final leftContent = ListView(
+      padding: EdgeInsets.fromLTRB(16, expanded ? 16 : 12, 16, 28),
+      children: [
           Container(
             width: double.infinity,
             decoration: AppChrome.softCardDecoration(),
@@ -207,17 +204,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _FeatureIcon(
                       icon: Icons.query_stats_outlined,
                       label: '통계',
-                      onTap: () => context.push('/insights'),
+                      selected: expanded && _desktopSection == ProfileDetailSection.stats,
+                      onTap: () => onFeatureTap(
+                        ProfileDetailSection.stats,
+                        () => context.push('/insights'),
+                      ),
                     ),
                     _FeatureIcon(
                       icon: Icons.flag_outlined,
                       label: '목표',
-                      onTap: () => context.push('/goals'),
+                      selected: expanded && _desktopSection == ProfileDetailSection.goals,
+                      onTap: () => onFeatureTap(
+                        ProfileDetailSection.goals,
+                        () => context.push('/goals'),
+                      ),
                     ),
                     _FeatureIcon(
                       icon: Icons.emoji_events_outlined,
                       label: '트랙',
-                      onTap: () => context.push('/flow-track'),
+                      selected: expanded && _desktopSection == ProfileDetailSection.track,
+                      onTap: () => onFeatureTap(
+                        ProfileDetailSection.track,
+                        () => context.push('/flow-track'),
+                      ),
                     ),
                   ],
                 ),
@@ -225,41 +234,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Row(
                   children: [
                     _FeatureIcon(
+                      icon: Icons.link,
+                      label: '외부 연결',
+                      selected: expanded && _desktopSection == ProfileDetailSection.mcp,
+                      onTap: () => onFeatureTap(
+                        ProfileDetailSection.mcp,
+                        () => context.push('/mcp'),
+                      ),
+                    ),
+                    _FeatureIcon(
                       icon: Icons.auto_awesome,
                       label: 'AI 도우미',
-                      onTap: () => showAiAssistantHub(context, ref),
+                      selected: expanded && _desktopSection == ProfileDetailSection.ai,
+                      onTap: () => onFeatureTap(
+                        ProfileDetailSection.ai,
+                        () => showAiAssistantHub(context, ref),
+                      ),
                     ),
                     _FeatureIcon(
                       icon: Icons.people_alt_outlined,
                       label: '바디더블링',
-                      onTap: () => showModalBottomSheet<void>(
-                        context: context,
-                        showDragHandle: true,
-                        builder: (c) => Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text('바디 더블링',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium),
-                              const SizedBox(height: 8),
-                              const Text('혼자 하기 어렵다면 “딱 5분만” 같이 시작해요.'),
-                              const SizedBox(height: 14),
-                              FilledButton.icon(
-                                onPressed: () {
-                                  Navigator.pop(c);
-                                  context.push('/focus');
-                                },
-                                icon: const Icon(Icons.timer_outlined),
-                                label: const Text('5분만 시작하기'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.pop(c),
-                                child: const Text('닫기'),
-                              ),
-                            ],
+                      selected: expanded && _desktopSection == ProfileDetailSection.bodyDoubling,
+                      onTap: () => onFeatureTap(
+                        ProfileDetailSection.bodyDoubling,
+                        () => showModalBottomSheet<void>(
+                          context: context,
+                          showDragHandle: true,
+                          builder: (c) => Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text('바디 더블링',
+                                    style: Theme.of(context).textTheme.titleMedium),
+                                const SizedBox(height: 8),
+                                const Text('혼자 하기 어렵다면 “딱 5분만” 같이 시작해요.'),
+                                const SizedBox(height: 14),
+                                FilledButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(c);
+                                    context.push('/focus');
+                                  },
+                                  icon: const Icon(Icons.timer_outlined),
+                                  label: const Text('5분만 시작하기'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(c),
+                                  child: const Text('닫기'),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -267,84 +292,155 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _FeatureIcon(
                       icon: Icons.health_and_safety_outlined,
                       label: '상태',
-                      onTap: () => context.push('/context'),
+                      selected: expanded && _desktopSection == ProfileDetailSection.context,
+                      onTap: () => onFeatureTap(
+                        ProfileDetailSection.context,
+                        () => context.push('/context'),
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            decoration: AppChrome.softCardDecoration(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '자동 제안',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1A1C26),
-                      ),
-                ),
-                const SizedBox(height: 8),
-                intensity.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (e, _) => Text('$e'),
-                  data: (v) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('적극적으로 제안 받기'),
-                          subtitle: Text(v == CoachNudgeIntensity.active
-                              ? '상황별로 더 자주'
-                              : '하루 1~2번만'),
-                          value: v == CoachNudgeIntensity.active,
-                          onChanged: (on) async {
-                            final next = on
-                                ? CoachNudgeIntensity.active
-                                : CoachNudgeIntensity.light;
-                            await ref
-                                .read(coachNudgePrefsProvider)
-                                .setIntensity(next);
-                            ref.invalidate(coachNudgeIntensityProvider);
-                          },
+          if (!expanded) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              decoration: AppChrome.softCardDecoration(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '자동 제안',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1A1C26),
                         ),
-                        const SizedBox(height: 8),
-                        OutlinedButton(
-                          onPressed: () async {
-                            await ref
-                                .read(coachNudgePrefsProvider)
-                                .hideForDays(CoachNudgeType.aiTodayPlan, 1);
-                            await ref
-                                .read(coachNudgePrefsProvider)
-                                .hideForDays(CoachNudgeType.bodyDoubling, 1);
-                            await ref
-                                .read(coachNudgePrefsProvider)
-                                .hideForDays(CoachNudgeType.insightsSummary, 1);
-                            await ref
-                                .read(coachNudgePrefsProvider)
-                                .hideForDays(CoachNudgeType.failurePattern, 1);
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(content: Text('오늘은 자동 제안을 쉬어갈게요')),
-                            );
-                          },
-                          child: const Text('오늘은 그만 보기'),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
+                  ),
+                  const SizedBox(height: 8),
+                  intensity.when(
+                    loading: () => const LinearProgressIndicator(),
+                    error: (e, _) => Text('$e'),
+                    data: (v) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('적극적으로 제안 받기'),
+                            subtitle: Text(v == CoachNudgeIntensity.active
+                                ? '상황별로 더 자주'
+                                : '하루 1~2번만'),
+                            value: v == CoachNudgeIntensity.active,
+                            onChanged: (on) async {
+                              final next = on
+                                  ? CoachNudgeIntensity.active
+                                  : CoachNudgeIntensity.light;
+                              await ref
+                                  .read(coachNudgePrefsProvider)
+                                  .setIntensity(next);
+                              ref.invalidate(coachNudgeIntensityProvider);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          OutlinedButton(
+                            onPressed: () async {
+                              await ref
+                                  .read(coachNudgePrefsProvider)
+                                  .hideForDays(CoachNudgeType.aiTodayPlan, 1);
+                              await ref
+                                  .read(coachNudgePrefsProvider)
+                                  .hideForDays(CoachNudgeType.bodyDoubling, 1);
+                              await ref
+                                  .read(coachNudgePrefsProvider)
+                                  .hideForDays(CoachNudgeType.insightsSummary, 1);
+                              await ref
+                                  .read(coachNudgePrefsProvider)
+                                  .hideForDays(CoachNudgeType.failurePattern, 1);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                const SnackBar(content: Text('오늘은 자동 제안을 쉬어갈게요')),
+                              );
+                            },
+                            child: const Text('오늘은 그만 보기'),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              decoration: AppChrome.softCardDecoration(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '자동 제안',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF1A1C26),
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    onPressed: () => selectDesktopSection(ProfileDetailSection.suggestions),
+                    child: const Text('자동 제안 설정 열기'),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
-      ),
+      );
+
+    final body = expanded
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 420,
+                child: leftContent,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                  child: ProfileDetailPanel(section: _desktopSection),
+                ),
+              ),
+            ],
+          )
+        : leftContent;
+
+    return Scaffold(
+      backgroundColor: AppChrome.pageBackground,
+      appBar: expanded
+          ? null
+          : AppBar(
+              backgroundColor: AppChrome.topBarBackground,
+              foregroundColor: AppChrome.topBarForeground,
+              surfaceTintColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              systemOverlayStyle: SystemUiOverlayStyle.light,
+              title: const Text('프로필'),
+              leading: shell != null
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                      tooltip: '오늘',
+                      onPressed: () => shell.goBranch(0),
+                    )
+                  : null,
+              automaticallyImplyLeading: shell == null,
+            ),
+      body: expanded ? SafeArea(child: body) : body,
     );
   }
 }
@@ -449,35 +545,48 @@ class _FeatureIcon extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.selected = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
+    final color = selected ? const Color(0xFF4A90E2) : const Color(0xFF5C6378);
+
     return Expanded(
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 22, color: const Color(0xFF5C6378)),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: const Color(0xFF8E93A3),
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ],
+        child: Container(
+          decoration: selected
+              ? BoxDecoration(
+                  color: const Color(0xFF4A90E2).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF4A90E2).withValues(alpha: 0.35)),
+                )
+              : const BoxDecoration(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 22, color: color),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: selected ? const Color(0xFF4A90E2) : const Color(0xFF8E93A3),
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

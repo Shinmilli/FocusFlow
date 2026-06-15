@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../layout/desktop_nav_rail.dart';
+import '../layout/responsive_layout.dart';
+
 /// 메인 탭 셸: 오늘(/) · 주간(/plan/week) · 프로필(/profile) + 중앙 오늘 선택(/plan/select).
 class MainShellScreen extends StatelessWidget {
   const MainShellScreen({super.key, required this.navigationShell});
@@ -9,10 +12,25 @@ class MainShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = ResponsiveLayout.isCompact(context);
+
+    if (compact) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F6FA),
+        body: SizedBox.expand(child: navigationShell),
+        bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: navigationShell,
-      bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesktopNavRail(shell: navigationShell),
+          Expanded(child: SizedBox.expand(child: navigationShell)),
+        ],
+      ),
     );
   }
 }
@@ -38,26 +56,80 @@ class MainBottomNavigationBar extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _SideDestination(
-                selected: idx == 1,
-                icon: Icons.calendar_month_rounded,
-                label: '주간',
-                onTap: () => shell.goBranch(1),
+              Expanded(
+                child: Center(
+                  child: _HomeDestination(
+                    selected: idx == 0,
+                    onTap: () => shell.goBranch(0),
+                  ),
+                ),
               ),
-              _CenterAddButton(
-                onTap: () => context.push('/plan/select'),
+              Expanded(
+                child: Center(
+                  child: _CenterAddButton(
+                    onTap: () => context.push('/plan/select'),
+                  ),
+                ),
               ),
-              _SideDestination(
-                selected: idx == 2,
-                icon: Icons.person_outline_rounded,
-                label: '프로필',
-                onTap: () => shell.goBranch(2),
+              Expanded(
+                child: Center(
+                  child: _SideDestination(
+                    selected: idx == 1,
+                    icon: Icons.calendar_month_rounded,
+                    label: '주간',
+                    onTap: () => shell.goBranch(1),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: _SideDestination(
+                    selected: idx == 2,
+                    icon: Icons.person_outline_rounded,
+                    label: '프로필',
+                    onTap: () => shell.goBranch(2),
+                  ),
+                ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HomeDestination extends StatelessWidget {
+  const _HomeDestination({
+    required this.selected,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? MainBottomNavigationBar._primaryBlue : const Color(0xFF8E93A3);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.home_rounded, size: 26, color: color),
+          const SizedBox(height: 4),
+          Text(
+            '홈',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -83,23 +155,20 @@ class _SideDestination extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        width: 88,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 26, color: color),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                color: color,
-              ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 26, color: color),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: color,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -121,9 +190,9 @@ class _CenterAddButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: const SizedBox(
-          width: 58,
-          height: 58,
-          child: Icon(Icons.add, color: Colors.white, size: 30),
+          width: 48,
+          height: 48,
+          child: Icon(Icons.add, color: Colors.white, size: 28),
         ),
       ),
     );
