@@ -134,13 +134,14 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
           children: [
             const DesktopNavRail(addButtonSelected: true),
             Expanded(
+              flex: 6,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(
-                    width: 420,
+                  Expanded(
+                    flex: 2,
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 12, 24),
                       children: [
                         Text(
                           '오늘 선택',
@@ -163,18 +164,22 @@ class _TodaySelectScreenState extends ConsumerState<TodaySelectScreen> {
                     ),
                   ),
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 16, 8, 16),
-                      child: DecoratedBox(
-                        decoration: _sidePanelDecoration(),
-                        child: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: _backlogSection(
-                            context,
-                            backlog,
-                            selected,
-                            showTitle: true,
-                            addButtonOnRight: true,
+                    flex: 3,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 280),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(0, 16, 12, 16),
+                        child: DecoratedBox(
+                          decoration: _sidePanelDecoration(),
+                          child: ListView(
+                            padding: const EdgeInsets.all(16),
+                            children: _backlogSection(
+                              context,
+                              backlog,
+                              selected,
+                              showTitle: true,
+                              addButtonOnRight: true,
+                            ),
                           ),
                         ),
                       ),
