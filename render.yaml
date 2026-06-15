@@ -32,3 +32,6 @@ services:
       # Set CORS_ORIGIN to your Flutter web origin(s), comma-separated, e.g. https://your-app.web.app
       - key: CORS_ORIGIN
         sync: false
+      # Optional: if DATABASE_URL host is truncated to dpg-xxxx only
+      - key: DATABASE_HOST_SUFFIX
+        value: singapore-postgres.render.com
