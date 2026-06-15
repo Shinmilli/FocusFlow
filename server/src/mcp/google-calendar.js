@@ -112,9 +112,19 @@ function dayBounds() {
   return { timeMin: start.toISOString(), timeMax: end.toISOString() };
 }
 
+/**
+ * @returns {Promise<{ items: object[]; notConnected?: boolean; error?: string }>}
+ */
 export async function fetchGoogleCalendarItems(pool, userId) {
+  const row = await getToken(pool, userId, "google");
+  if (!row) {
+    return { items: [], notConnected: true };
+  }
+
   const accessToken = await ensureAccessToken(pool, userId);
-  if (!accessToken) return [];
+  if (!accessToken) {
+    return { items: [], notConnected: true };
+  }
 
   const { timeMin, timeMax } = dayBounds();
   const params = new URLSearchParams({
@@ -132,13 +142,19 @@ export async function fetchGoogleCalendarItems(pool, userId) {
   const raw = await res.text();
   if (!res.ok) {
     console.error("Google Calendar fetch error:", raw.slice(0, 400));
-    return [];
+    let message = `Google Calendar API 오류 (${res.status})`;
+    try {
+      const err = JSON.parse(raw);
+      const detail = err?.error?.message;
+      if (detail) message = detail;
+    } catch (_) {}
+    return { items: [], error: message };
   }
 
   const data = JSON.parse(raw);
   const events = Array.isArray(data.items) ? data.items : [];
 
-  return events
+  const items = events
     .filter((e) => e.status !== "cancelled")
     .map((e) => {
       const start = e.start?.dateTime || e.start?.date || null;
@@ -151,4 +167,6 @@ export async function fetchGoogleCalendarItems(pool, userId) {
         kind: "event",
       };
     });
+
+  return { items };
 }

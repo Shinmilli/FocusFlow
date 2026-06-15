@@ -7,6 +7,7 @@ import '../../planning/domain/task_block.dart';
 import '../../planning/domain/task_unit.dart';
 import '../../planning/presentation/planning_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
+import '../data/focus_flow_mcp_bridge.dart';
 import '../domain/external_item.dart';
 import 'mcp_providers.dart';
 
@@ -37,6 +38,7 @@ class _McpOrganizeSheet extends ConsumerStatefulWidget {
 class _McpOrganizeSheetState extends ConsumerState<_McpOrganizeSheet> {
   _McpOrganizeStep _step = _McpOrganizeStep.loading;
   String? _error;
+  List<String> _warnings = [];
   List<ExternalItem> _items = [];
   McpOrganizeProposal? _proposal;
   final _selectedBlockIdx = <int>{0};
@@ -54,18 +56,27 @@ class _McpOrganizeSheetState extends ConsumerState<_McpOrganizeSheet> {
     });
     try {
       final bridge = ref.read(mcpBridgeProvider);
-      final items = await bridge.fetchExternalItems();
+      McpFetchBundle bundle;
+      if (bridge is FocusFlowMcpBridge) {
+        bundle = await bridge.fetchExternalItemsDetailed();
+      } else {
+        bundle = McpFetchBundle(items: await bridge.fetchExternalItems());
+      }
       if (!mounted) return;
-      if (items.isEmpty) {
+      if (bundle.items.isEmpty) {
         setState(() {
-          _error = '가져올 항목이 없어요. MCP 연결에서 Google·Notion을 연결하거나 기기 캘린더 권한을 허용해 주세요.';
+          _warnings = bundle.warnings;
+          _error = bundle.warnings.isNotEmpty
+              ? bundle.warnings.join('\n')
+              : '가져올 항목이 없어요. 외부 도구 연결에서 Google을 연결하거나 기기 캘린더 권한을 허용해 주세요.';
           _items = [];
           _step = _McpOrganizeStep.review;
         });
         return;
       }
       setState(() {
-        _items = items;
+        _items = bundle.items;
+        _warnings = bundle.warnings;
         _step = _McpOrganizeStep.review;
       });
     } catch (e) {
@@ -268,6 +279,26 @@ class _McpOrganizeSheetState extends ConsumerState<_McpOrganizeSheet> {
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ],
+            if (_warnings.isNotEmpty && _items.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                _warnings.join('\n'),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.tertiary,
+                    ),
+              ),
+            ],
+            if (_items.isEmpty) ...[
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  widget.hostContext.push('/mcp');
+                },
+                icon: const Icon(Icons.link),
+                label: const Text('외부 도구 연결하기'),
+              ),
             ],
             const SizedBox(height: 12),
             if (_items.isEmpty && _error == null)

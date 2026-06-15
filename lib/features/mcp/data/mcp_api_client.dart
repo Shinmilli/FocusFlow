@@ -17,6 +17,16 @@ class McpApiException implements Exception {
   String toString() => message;
 }
 
+class McpFetchResult {
+  const McpFetchResult({
+    required this.items,
+    this.warnings = const [],
+  });
+
+  final List<ExternalItem> items;
+  final List<String> warnings;
+}
+
 class McpApiClient {
   McpApiClient({
     required AuthApiClient auth,
@@ -62,7 +72,7 @@ class McpApiClient {
     _throwIfBad(res);
   }
 
-  Future<List<ExternalItem>> fetchRemoteItems() async {
+  Future<McpFetchResult> fetchRemoteItems() async {
     final uri = Uri.parse(apiUrl('/mcp/fetch'));
     final res = await _client.post(
       uri,
@@ -72,11 +82,21 @@ class McpApiClient {
     _throwIfBad(res);
     final map = jsonDecode(res.body) as Map<String, dynamic>;
     final items = map['items'] as List<dynamic>? ?? [];
-    return items
+    final warningsRaw = map['warnings'] as List<dynamic>? ?? [];
+    final warnings = warningsRaw
         .whereType<Map<String, dynamic>>()
-        .map(ExternalItem.fromJson)
-        .where((i) => i.title.isNotEmpty)
+        .map((w) => (w['message'] ?? '').toString())
+        .where((s) => s.isNotEmpty)
         .toList();
+
+    return McpFetchResult(
+      items: items
+          .whereType<Map<String, dynamic>>()
+          .map(ExternalItem.fromJson)
+          .where((i) => i.title.isNotEmpty)
+          .toList(),
+      warnings: warnings,
+    );
   }
 
   Future<McpOrganizeProposal> organize({
@@ -109,6 +129,12 @@ class McpApiClient {
   void _throwIfBad(http.Response res) {
     if (res.statusCode == 401) {
       throw McpApiException('인증이 만료되었어요. 다시 로그인해 주세요.', statusCode: 401);
+    }
+    if (res.statusCode == 404) {
+      throw McpApiException(
+        '서버에 MCP API가 없어요. Render에 최신 코드를 배포했는지 확인해 주세요.',
+        statusCode: 404,
+      );
     }
     if (res.statusCode < 200 || res.statusCode >= 300) {
       String msg = '요청에 실패했어요 (${res.statusCode})';

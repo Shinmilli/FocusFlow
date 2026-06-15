@@ -16,7 +16,6 @@ import {
 import {
   consumeOAuthState,
   deleteToken,
-  ensureMcpSchema,
   listConnectedProviders,
   saveOAuthState,
 } from "./oauth-store.js";
@@ -55,7 +54,12 @@ h1{font-size:1.35rem}p{color:#5c6378;line-height:1.5}</style></head>
  * @param {{ pool: import("pg").Pool; authMiddleware: Function; geminiApiKey: string; geminiModel: string }} deps
  */
 export function registerMcpRoutes(app, { pool, authMiddleware, geminiApiKey, geminiModel }) {
-  ensureMcpSchema(pool).catch((e) => console.error("MCP schema error:", e));
+  app.get("/mcp/config", (_req, res) => {
+    return res.json({
+      google: { configured: googleMcpConfigured() },
+      notion: { configured: notionMcpConfigured() },
+    });
+  });
 
   app.get("/mcp/status", authMiddleware, async (req, res) => {
     const connected = await listConnectedProviders(pool, req.user.id);
@@ -111,7 +115,12 @@ export function registerMcpRoutes(app, { pool, authMiddleware, geminiApiKey, gem
       return res.type("html").send(oauthSuccessHtml("google"));
     } catch (e) {
       console.error("Google OAuth callback:", e);
-      return res.status(500).send("OAuth failed");
+      const msg = String(e?.message || e).slice(0, 300);
+      return res.status(500).type("html").send(
+        `<!DOCTYPE html><html lang="ko"><body style="font-family:system-ui;max-width:480px;margin:48px auto;padding:0 20px">
+        <h1>Google 연결 실패</h1><p>${msg}</p>
+        <p>Redirect URI가 Google Cloud와 Render GOOGLE_REDIRECT_URI가 정확히 일치하는지 확인해 주세요.</p></body></html>`,
+      );
     }
   });
 
@@ -144,12 +153,43 @@ export function registerMcpRoutes(app, { pool, authMiddleware, geminiApiKey, gem
   });
 
   app.post("/mcp/fetch", authMiddleware, async (req, res) => {
-    const [googleItems, notionItems] = await Promise.all([
-      fetchGoogleCalendarItems(pool, req.user.id),
-      fetchNotionItems(pool, req.user.id),
-    ]);
+    const warnings = [];
+    let googleItems = [];
+    let notionItems = [];
+
+    try {
+      const googleResult = await fetchGoogleCalendarItems(pool, req.user.id);
+      googleItems = googleResult.items;
+      if (googleResult.notConnected) {
+        warnings.push({
+          source: "google_calendar",
+          message: "Google Calendar가 연결되지 않았어요. 외부 도구 연결에서 계정을 연결해 주세요.",
+        });
+      } else if (googleResult.error) {
+        warnings.push({ source: "google_calendar", message: googleResult.error });
+      }
+    } catch (e) {
+      warnings.push({ source: "google_calendar", message: String(e?.message || e) });
+    }
+
+    try {
+      notionItems = await fetchNotionItems(pool, req.user.id);
+      const notionConnected = (await listConnectedProviders(pool, req.user.id)).some(
+        (r) => r.provider === "notion",
+      );
+      if (!notionConnected && notionMcpConfigured()) {
+        warnings.push({
+          source: "notion",
+          message: "Notion이 연결되지 않았어요.",
+        });
+      }
+    } catch (e) {
+      warnings.push({ source: "notion", message: String(e?.message || e) });
+    }
+
     return res.json({
       items: [...googleItems, ...notionItems],
+      warnings,
     });
   });
 

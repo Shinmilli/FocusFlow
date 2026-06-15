@@ -7,6 +7,16 @@ import '../domain/mcp_bridge.dart';
 import 'device_calendar_service.dart';
 import 'mcp_api_client.dart';
 
+class McpFetchBundle {
+  const McpFetchBundle({
+    required this.items,
+    this.warnings = const [],
+  });
+
+  final List<ExternalItem> items;
+  final List<String> warnings;
+}
+
 /// 서버 MCP + 기기 캘린더를 합친 실제 브리지.
 class FocusFlowMcpBridge implements McpBridge {
   FocusFlowMcpBridge({
@@ -23,11 +33,7 @@ class FocusFlowMcpBridge implements McpBridge {
   @override
   Future<McpConnectionStatus> fetchConnectionStatus() async {
     if (!_hasApi) return McpConnectionStatus.offline();
-    try {
-      return await _api!.fetchStatus();
-    } catch (_) {
-      return McpConnectionStatus.offline();
-    }
+    return _api!.fetchStatus();
   }
 
   @override
@@ -44,19 +50,37 @@ class FocusFlowMcpBridge implements McpBridge {
 
   @override
   Future<List<ExternalItem>> fetchExternalItems() async {
+    final bundle = await fetchExternalItemsDetailed();
+    return bundle.items;
+  }
+
+  Future<McpFetchBundle> fetchExternalItemsDetailed() async {
     final results = <ExternalItem>[];
+    final warnings = <String>[];
 
     if (_hasApi) {
       try {
-        results.addAll(await _api!.fetchRemoteItems());
-      } catch (_) {}
+        final remote = await _api!.fetchRemoteItems();
+        results.addAll(remote.items);
+        warnings.addAll(remote.warnings);
+      } on McpApiException catch (e) {
+        warnings.add(e.message);
+      }
+    } else {
+      warnings.add('API 서버에 연결되지 않았어요.');
     }
 
     try {
-      results.addAll(await _deviceCalendar.fetchUpcomingItems());
-    } catch (_) {}
+      final local = await _deviceCalendar.fetchUpcomingItems();
+      results.addAll(local);
+      if (local.isEmpty && _deviceCalendar.isSupported) {
+        warnings.add('기기 캘린더 권한이 없거나 오늘·내일 일정이 없어요.');
+      }
+    } catch (e) {
+      warnings.add('기기 캘린더: $e');
+    }
 
-    return results;
+    return McpFetchBundle(items: results, warnings: warnings);
   }
 
   @override
@@ -73,7 +97,9 @@ class FocusFlowMcpBridge implements McpBridge {
           existingTitles: existingTitles,
         );
         if (proposal.blocks.isNotEmpty) return proposal;
-      } catch (_) {}
+      } on McpApiException {
+        // Gemini 실패 시 로컬 휴리스틱으로 폴백.
+      }
     }
     return fallbackOrganizeProposal(items: items, lifeContext: lifeContext);
   }
@@ -90,7 +116,5 @@ class FocusFlowMcpBridge implements McpBridge {
   }
 
   @override
-  Future<void> rescheduleCalendar({required String rationale}) async {
-    // 추후: 서버 MCP가 캘린더 일정 재배치 API 호출.
-  }
+  Future<void> rescheduleCalendar({required String rationale}) async {}
 }

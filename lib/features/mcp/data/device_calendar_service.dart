@@ -35,8 +35,6 @@ class DeviceCalendarService {
     final items = <ExternalItem>[];
 
     for (final cal in calendarsResult.data!) {
-      if (cal.isReadOnly == true) continue;
-
       final eventsResult = await _plugin.retrieveEvents(
         cal.id,
         RetrieveEventsParams(startDate: start, endDate: end),

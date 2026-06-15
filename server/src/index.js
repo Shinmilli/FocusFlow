@@ -8,6 +8,7 @@ import pg from "pg";
 
 import { geminiGenerateJson, geminiGenerateText } from "./gemini.js";
 import { registerMcpRoutes } from "./mcp/routes.js";
+import { ensureMcpSchema } from "./mcp/oauth-store.js";
 
 const { Pool } = pg;
 
@@ -56,6 +57,7 @@ async function ensureSchema() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  await ensureMcpSchema(pool);
 }
 
 function signToken(userId, email) {

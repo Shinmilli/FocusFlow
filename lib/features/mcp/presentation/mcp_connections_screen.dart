@@ -29,23 +29,54 @@ class _McpConnectionsScreenState extends ConsumerState<McpConnectionsScreen> {
   }
 
   Future<void> _connect(McpOAuthProvider provider) async {
-    final bridge = ref.read(mcpBridgeProvider);
-    final url = await bridge.startOAuth(provider);
-    if (!mounted) return;
-    if (url == null || url.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('서버 OAuth 설정이 필요해요. GOOGLE/NOTION 클라이언트 ID를 확인해 주세요.')),
-      );
-      return;
-    }
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      final bridge = ref.read(mcpBridgeProvider);
+      final url = await bridge.startOAuth(provider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('브라우저에서 연결 후, 여기로 돌아와 새로고침해 주세요.')),
-      );
+      if (url == null || url.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('서버 OAuth 설정이 필요해요. Render에 GOOGLE_CLIENT_ID 등을 넣었는지 확인해 주세요.'),
+          ),
+        );
+        return;
+      }
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('브라우저에서 연결 중… 잠시 후 자동으로 상태를 확인해요.')),
+        );
+        _pollConnectionAfterOAuth(provider);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
+  }
+
+  Future<void> _pollConnectionAfterOAuth(McpOAuthProvider provider) async {
+    for (var i = 0; i < 15; i++) {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      ref.invalidate(mcpConnectionStatusProvider);
+      final status = await ref.read(mcpConnectionStatusProvider.future);
+      final connected = provider == McpOAuthProvider.google
+          ? status.google.connected
+          : status.notion.connected;
+      if (connected) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('연결됐어요!')),
+        );
+        return;
+      }
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('아직 연결 확인이 안 돼요. 새로고침을 눌러 보세요.')),
+    );
   }
 
   Future<void> _disconnect(McpOAuthProvider provider) async {
