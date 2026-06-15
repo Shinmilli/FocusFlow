@@ -32,11 +32,17 @@ class AuthApiClient {
 
   Map<String, String> authorizedHeaders({bool jsonBody = false}) => _headers(jsonBody: jsonBody);
 
-  /// Cold spin / proxy errors (502) often omit CORS headers; the browser surfaces that as a failed fetch.
+  /// Render 스플래시(200 HTML)와 구분 — JSON {"ok":true} 만 성공.
   Future<bool> pingHealth() async {
     final uri = Uri.parse(apiUrl('/health'));
-    final res = await _client.get(uri);
-    return res.statusCode == 200;
+    try {
+      final res = await _client.get(uri).timeout(const Duration(seconds: 90));
+      if (res.statusCode != 200) return false;
+      final map = jsonDecode(res.body);
+      return map is Map && map['ok'] == true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<(String token, AuthUser user)> register({

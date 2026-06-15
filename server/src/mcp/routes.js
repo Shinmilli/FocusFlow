@@ -43,11 +43,29 @@ function oauthSuccessHtml(provider) {
   const label =
     provider === "google" ? "Google Calendar" : provider === "notion" ? "Notion" : provider;
   return `<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"/>
-<title>FocusFlow 연결 완료</title>
-<style>body{font-family:system-ui,sans-serif;max-width:420px;margin:48px auto;padding:0 20px;color:#1a1c26}
-h1{font-size:1.35rem}p{color:#5c6378;line-height:1.5}</style></head>
-<body><h1>${label} 연결 완료</h1>
-<p>이 창을 닫고 FocusFlow 앱으로 돌아가 주세요. 연결 상태가 자동으로 반영돼요.</p></body></html>`;
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FocusFlow — ${label} 연결 완료</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;max-width:440px;margin:0 auto;padding:32px 20px;color:#1a1c26;background:#f6f7fb}
+.card{background:#fff;border-radius:16px;padding:28px 24px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.ok{font-size:48px;line-height:1;margin-bottom:12px}
+h1{font-size:1.35rem;margin:0 0 12px}
+p{color:#5c6378;line-height:1.6;margin:0 0 10px}
+.steps{margin:16px 0 0;padding-left:20px;color:#3d4251}
+.steps li{margin-bottom:8px}
+.badge{display:inline-block;margin-top:16px;padding:8px 14px;background:#e8f5e9;color:#2e7d32;border-radius:8px;font-weight:600;font-size:14px}
+</style></head>
+<body><div class="card">
+<div class="ok">✅</div>
+<h1>${label} 연결 완료</h1>
+<p>Google 계정 승인이 서버에 저장됐어요. 이제 FocusFlow에서 일정을 가져올 수 있어요.</p>
+<ol class="steps">
+<li>이 브라우저 탭을 닫거나 뒤로 가기</li>
+<li>FocusFlow 앱으로 돌아가기</li>
+<li><strong>프로필 → 외부 연결</strong>에서 새로고침 → 「연결됨」 확인</li>
+</ol>
+<span class="badge">연결 성공 — 이 창을 닫아도 됩니다</span>
+</div></body></html>`;
 }
 
 /**
