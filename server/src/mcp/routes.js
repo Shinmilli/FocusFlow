@@ -4,6 +4,7 @@ import { geminiGenerateJson } from "../gemini.js";
 import {
   buildGoogleAuthUrl,
   fetchGoogleCalendarItems,
+  googleMcpConfigDebug,
   googleMcpConfigured,
   handleGoogleCallback,
 } from "./google-calendar.js";
@@ -55,9 +56,19 @@ h1{font-size:1.35rem}p{color:#5c6378;line-height:1.5}</style></head>
  */
 export function registerMcpRoutes(app, { pool, authMiddleware, geminiApiKey, geminiModel }) {
   app.get("/mcp/config", (_req, res) => {
+    const googleDbg = googleMcpConfigDebug();
     return res.json({
-      google: { configured: googleMcpConfigured() },
-      notion: { configured: notionMcpConfigured() },
+      google: {
+        configured: googleMcpConfigured(),
+        missing: [
+          !googleDbg.hasClientId ? "GOOGLE_CLIENT_ID" : null,
+          !googleDbg.hasClientSecret ? "GOOGLE_CLIENT_SECRET" : null,
+          !googleDbg.hasRedirectUri ? "GOOGLE_REDIRECT_URI" : null,
+        ].filter(Boolean),
+      },
+      notion: {
+        configured: notionMcpConfigured(),
+      },
     });
   });
 

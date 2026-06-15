@@ -13,8 +13,15 @@ import { ensureMcpSchema } from "./mcp/oauth-store.js";
 const { Pool } = pg;
 
 const PORT = Number(process.env.PORT) || 8787;
-const DATABASE_URL = process.env.DATABASE_URL;
-const JWT_SECRET = process.env.JWT_SECRET;
+
+function normalizeEnv(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
+}
+
+const DATABASE_URL = normalizeEnv(process.env.DATABASE_URL);
+const JWT_SECRET = normalizeEnv(process.env.JWT_SECRET);
 // Long-lived until explicit logout; override with JWT_EXPIRES (e.g. "90d") if you prefer shorter tokens.
 const JWT_EXPIRES = process.env.JWT_EXPIRES || "365d";
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "";
@@ -26,6 +33,30 @@ if (!DATABASE_URL) {
   console.error("Missing DATABASE_URL (add Render PostgreSQL and link to this service).");
   process.exit(1);
 }
+
+function validateDatabaseUrl(url) {
+  try {
+    const parsed = new URL(url.replace(/^postgresql:\/\//, "http://"));
+    if (!parsed.hostname.includes(".")) {
+      console.error(
+        `DATABASE_URL hostname looks truncated: "${parsed.hostname}"`,
+      );
+      console.error(
+        "Render Postgres needs the full host, e.g. dpg-xxxx.singapore-postgres.render.com",
+      );
+      console.error(
+        "Fix: Render Dashboard → PostgreSQL → Connect → copy Internal Database URL → paste into Web Service DATABASE_URL (no quotes).",
+      );
+      process.exit(1);
+    }
+  } catch (e) {
+    console.error("Invalid DATABASE_URL format:", e.message);
+    process.exit(1);
+  }
+}
+
+validateDatabaseUrl(DATABASE_URL);
+
 if (!JWT_SECRET || JWT_SECRET.length < 16) {
   console.error("Missing or weak JWT_SECRET (use at least 16 random characters).");
   process.exit(1);

@@ -1,3 +1,4 @@
+import { env, envBool } from "../env.js";
 import { getToken, upsertToken } from "./oauth-store.js";
 
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -5,11 +6,20 @@ const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 
 function isConfigured() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  return envBool("GOOGLE_CLIENT_ID") && envBool("GOOGLE_CLIENT_SECRET");
 }
 
 function redirectUri() {
-  return process.env.GOOGLE_REDIRECT_URI || "";
+  return env("GOOGLE_REDIRECT_URI");
+}
+
+export function googleMcpConfigDebug() {
+  return {
+    hasClientId: envBool("GOOGLE_CLIENT_ID"),
+    hasClientSecret: envBool("GOOGLE_CLIENT_SECRET"),
+    hasRedirectUri: envBool("GOOGLE_REDIRECT_URI"),
+    redirectUri: redirectUri() || null,
+  };
 }
 
 export function googleMcpConfigured() {
@@ -18,7 +28,7 @@ export function googleMcpConfigured() {
 
 export function buildGoogleAuthUrl(state) {
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID,
+    client_id: env("GOOGLE_CLIENT_ID"),
     redirect_uri: redirectUri(),
     response_type: "code",
     scope: CALENDAR_SCOPE,
@@ -35,8 +45,8 @@ async function exchangeCode(code) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      client_id: env("GOOGLE_CLIENT_ID"),
+      client_secret: env("GOOGLE_CLIENT_SECRET"),
       redirect_uri: redirectUri(),
       grant_type: "authorization_code",
     }),
@@ -51,8 +61,8 @@ async function refreshAccessToken(refreshToken) {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      client_id: env("GOOGLE_CLIENT_ID"),
+      client_secret: env("GOOGLE_CLIENT_SECRET"),
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),

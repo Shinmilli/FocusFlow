@@ -45,6 +45,42 @@ class McpApiClient {
     return McpConnectionStatus.fromJson(map);
   }
 
+  /// 로그인 없이 서버 OAuth 설정 여부만 확인 (Render env 누락 진단용).
+  Future<McpConnectionStatus> fetchPublicConfig() async {
+    final uri = Uri.parse(apiUrl('/mcp/config'));
+    final res = await _client.get(uri);
+    if (res.statusCode == 404) {
+      throw McpApiException(
+        '서버에 MCP API가 없어요. 최신 코드를 Render에 배포해 주세요.',
+        statusCode: 404,
+      );
+    }
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw McpApiException('서버 설정 확인 실패 (${res.statusCode})', statusCode: res.statusCode);
+    }
+    final map = jsonDecode(res.body) as Map<String, dynamic>;
+    final google = map['google'] as Map<String, dynamic>? ?? {};
+    final notion = map['notion'] as Map<String, dynamic>? ?? {};
+    final googleMissing = (google['missing'] as List<dynamic>? ?? []).map((e) => e.toString()).toList();
+
+    return McpConnectionStatus(
+      google: McpProviderStatus(
+        configured: google['configured'] == true,
+        connected: false,
+        note: googleMissing.isEmpty ? null : 'Render에 추가: ${googleMissing.join(", ")}',
+      ),
+      notion: McpProviderStatus(
+        configured: notion['configured'] == true,
+        connected: false,
+      ),
+      samsungCalendar: const McpProviderStatus(
+        configured: true,
+        connected: false,
+        note: '기기에서 직접 읽어요',
+      ),
+    );
+  }
+
   Future<String> fetchOAuthUrl(McpOAuthProvider provider) async {
     final path = provider == McpOAuthProvider.google
         ? '/mcp/google/auth-url'

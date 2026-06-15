@@ -122,7 +122,10 @@ class _McpConnectionsScreenState extends ConsumerState<McpConnectionsScreen> {
                 _ProviderCard(
                   icon: Icons.calendar_month_outlined,
                   title: 'Google Calendar',
-                  subtitle: '오늘·내일 일정 가져오기',
+                  subtitle: status.google.note ??
+                      (status.google.configured
+                          ? '오늘·내일 일정 가져오기'
+                          : 'Render Environment에 GOOGLE_CLIENT_ID·SECRET·REDIRECT_URI 필요'),
                   configured: status.google.configured,
                   connected: status.google.connected,
                   onConnect: () => _connect(McpOAuthProvider.google),
@@ -260,7 +263,10 @@ class _ProviderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final trailing = connected
         ? const Text('연결됨', style: TextStyle(color: Colors.green))
-        : Text(configured ? '미연결' : '서버 미설정');
+        : Text(
+            configured ? '미연결' : '서버 env 누락',
+            style: TextStyle(color: configured ? null : Colors.orange.shade800),
+          );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),

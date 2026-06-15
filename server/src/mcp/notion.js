@@ -1,3 +1,4 @@
+import { env, envBool } from "../env.js";
 import { getToken, upsertToken } from "./oauth-store.js";
 
 const NOTION_AUTH = "https://api.notion.com/v1/oauth/authorize";
@@ -5,11 +6,11 @@ const NOTION_TOKEN = "https://api.notion.com/v1/oauth/token";
 const NOTION_VERSION = "2022-06-28";
 
 function isConfigured() {
-  return Boolean(process.env.NOTION_CLIENT_ID && process.env.NOTION_CLIENT_SECRET);
+  return envBool("NOTION_CLIENT_ID") && envBool("NOTION_CLIENT_SECRET");
 }
 
 function redirectUri() {
-  return process.env.NOTION_REDIRECT_URI || "";
+  return env("NOTION_REDIRECT_URI");
 }
 
 export function notionMcpConfigured() {
@@ -18,7 +19,7 @@ export function notionMcpConfigured() {
 
 export function buildNotionAuthUrl(state) {
   const params = new URLSearchParams({
-    client_id: process.env.NOTION_CLIENT_ID,
+    client_id: env("NOTION_CLIENT_ID"),
     redirect_uri: redirectUri(),
     response_type: "code",
     owner: "user",
@@ -29,7 +30,7 @@ export function buildNotionAuthUrl(state) {
 
 async function exchangeCode(code) {
   const basic = Buffer.from(
-    `${process.env.NOTION_CLIENT_ID}:${process.env.NOTION_CLIENT_SECRET}`,
+    `${env("NOTION_CLIENT_ID")}:${env("NOTION_CLIENT_SECRET")}`,
   ).toString("base64");
 
   const res = await fetch(NOTION_TOKEN, {

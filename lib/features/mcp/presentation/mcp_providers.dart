@@ -25,6 +25,20 @@ final mcpBridgeProvider = Provider<McpBridge>((ref) {
 });
 
 final mcpConnectionStatusProvider = FutureProvider<McpConnectionStatus>((ref) async {
-  final bridge = ref.watch(mcpBridgeProvider);
-  return bridge.fetchConnectionStatus();
+  final api = ref.watch(mcpApiClientProvider);
+  if (api == null || !kApiBaseUrlConfigured) {
+    return McpConnectionStatus.offline();
+  }
+
+  try {
+    return await api.fetchStatus();
+  } on McpApiException catch (e) {
+    if (e.statusCode == 401) rethrow;
+    // 인증 전·일시 오류 시 공개 config로 configured만 표시.
+    try {
+      return await api.fetchPublicConfig();
+    } catch (_) {
+      rethrow;
+    }
+  }
 });
