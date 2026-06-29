@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../layout/desktop_nav_rail.dart';
 import '../layout/responsive_layout.dart';
+import 'shell_layout.dart';
 
 /// 메인 탭 셸: 오늘(/) · 주간(/plan/week) · 프로필(/profile) + 중앙 오늘 선택(/plan/select).
 class MainShellScreen extends StatelessWidget {
@@ -17,7 +18,7 @@ class MainShellScreen extends StatelessWidget {
     if (compact) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
-        body: navigationShell,
+        body: ShellBodySlot(child: navigationShell),
         bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
       );
     }
@@ -28,7 +29,7 @@ class MainShellScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DesktopNavRail(shell: navigationShell),
-          Expanded(child: navigationShell),
+          Expanded(child: ShellBodySlot(child: navigationShell)),
         ],
       ),
     );
