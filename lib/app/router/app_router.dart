@@ -26,8 +26,15 @@ import '../../features/flow_track/presentation/flow_track_screen.dart';
 import '../../features/user_state/presentation/user_context_screen.dart';
 import '../../features/user_state/presentation/daily_context_gate_providers.dart';
 import 'main_shell_screen.dart';
+import 'shell_branch_container.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _homeShellNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellHome');
+final GlobalKey<NavigatorState> _weekShellNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellWeek');
+final GlobalKey<NavigatorState> _profileShellNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellProfile');
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ref.watch(routerRefreshListenableProvider);
@@ -99,32 +106,39 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      StatefulShellRoute.indexedStack(
+      StatefulShellRoute(
         builder: (context, state, navigationShell) {
           return MainShellScreen(navigationShell: navigationShell);
         },
+        navigatorContainerBuilder: shellIndexedStackContainer,
         branches: [
           StatefulShellBranch(
+            navigatorKey: _homeShellNavigatorKey,
+            preload: true,
             routes: [
               GoRoute(
                 path: '/',
-                builder: (context, state) => const HomeScreen(),
+                builder: (context, state) => const ShellTabBody(child: HomeScreen()),
               ),
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _weekShellNavigatorKey,
+            preload: true,
             routes: [
               GoRoute(
                 path: '/plan/week',
-                builder: (context, state) => const WeekSelectScreen(),
+                builder: (context, state) => const ShellTabBody(child: WeekSelectScreen()),
               ),
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _profileShellNavigatorKey,
+            preload: true,
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (context, state) => const ProfileScreen(),
+                builder: (context, state) => const ShellTabBody(child: ProfileScreen()),
               ),
             ],
           ),
