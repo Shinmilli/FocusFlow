@@ -7,6 +7,7 @@ import '../features/notifications/presentation/notification_providers.dart';
 import '../features/sync/presentation/sync_providers.dart';
 import '../features/sync/sync_invalidation.dart';
 import 'router/app_router.dart';
+import 'layout/responsive_layout.dart';
 import 'theme/app_theme.dart';
 
 class FocusFlowApp extends ConsumerWidget {
@@ -30,6 +31,26 @@ class FocusFlowApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       title: 'FocusFlow',
       theme: buildAppTheme(),
+      builder: (context, child) {
+        if (child == null) return const SizedBox.shrink();
+
+        final size = MediaQuery.sizeOf(context);
+        final isMobile = ResponsiveLayout.isCompact(context);
+        final fullChild = SizedBox(
+          width: size.width,
+          height: size.height,
+          child: child,
+        );
+
+        if (isMobile) {
+          return ColoredBox(
+            color: const Color(0xFFF5F6FA),
+            child: fullChild,
+          );
+        }
+
+        return fullChild;
+      },
       routerConfig: router,
     );
   }

@@ -14,27 +14,24 @@ class MainShellScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact = ResponsiveLayout.isCompact(context);
 
+    // 모바일: 반응형 분리 이전과 동일 — navigationShell을 body에 직접 둠.
     if (compact) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
-        body: SafeArea(
-          bottom: false,
-          child: SizedBox.expand(child: navigationShell),
-        ),
+        body: navigationShell,
         bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
       );
     }
 
+    // 노트북·데스크톱: 좌측 레일 + 본문.
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            DesktopNavRail(shell: navigationShell),
-            Expanded(child: SizedBox.expand(child: navigationShell)),
-          ],
-        ),
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DesktopNavRail(shell: navigationShell),
+          Expanded(child: navigationShell),
+        ],
       ),
     );
   }
