@@ -103,7 +103,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!expanded) return scroll;
 
       return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             flex: 5,
@@ -119,9 +119,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       );
     }
-
-    final gridCrossCount = HomeTaskGridLayout.crossAxisCount(context);
-    final gridPadding = HomeTaskGridLayout.gridHorizontalPadding(context);
 
     return asyncBlocks.when(
       loading: () => scrollHome([
@@ -140,6 +137,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ]),
       data: (blocks) {
         final list = _orderedBlocks(blocks);
+        final gridCrossCount = HomeTaskGridLayout.crossAxisCount(context);
+        final gridPadding = HomeTaskGridLayout.gridHorizontalPadding(context);
         return scrollHome([
           SliverToBoxAdapter(child: heroScrollBody),
           if (list.isEmpty)

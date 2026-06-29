@@ -17,19 +17,24 @@ class MainShellScreen extends StatelessWidget {
     if (compact) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
-        body: SizedBox.expand(child: navigationShell),
+        body: SafeArea(
+          bottom: false,
+          child: SizedBox.expand(child: navigationShell),
+        ),
         bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
       );
     }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DesktopNavRail(shell: navigationShell),
-          Expanded(child: SizedBox.expand(child: navigationShell)),
-        ],
+      body: SafeArea(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesktopNavRail(shell: navigationShell),
+            Expanded(child: SizedBox.expand(child: navigationShell)),
+          ],
+        ),
       ),
     );
   }
