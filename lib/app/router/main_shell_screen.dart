@@ -14,23 +14,21 @@ class MainShellScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact = ResponsiveLayout.isCompact(context);
 
-    // 모바일
     if (compact) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
-        body: SizedBox.expand(child: navigationShell),
+        body: navigationShell,
         bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
       );
     }
 
-    // 노트북·데스크톱
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           DesktopNavRail(shell: navigationShell),
-          Expanded(child: SizedBox.expand(child: navigationShell)),
+          Expanded(child: navigationShell),
         ],
       ),
     );

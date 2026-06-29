@@ -7,11 +7,12 @@ import '../features/notifications/presentation/notification_providers.dart';
 import '../features/sync/presentation/sync_providers.dart';
 import '../features/sync/sync_invalidation.dart';
 import 'router/app_router.dart';
-import 'layout/responsive_layout.dart';
 import 'theme/app_theme.dart';
 
 class FocusFlowApp extends ConsumerWidget {
   const FocusFlowApp({super.key});
+
+  static const double _compactBreakpoint = 760;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,22 +35,27 @@ class FocusFlowApp extends ConsumerWidget {
       builder: (context, child) {
         if (child == null) return const SizedBox.shrink();
 
-        final size = MediaQuery.sizeOf(context);
-        final isMobile = ResponsiveLayout.isCompact(context);
-        final fullChild = SizedBox(
-          width: size.width,
-          height: size.height,
-          child: child,
+        final width = MediaQuery.sizeOf(context).width;
+        final isMobile = width < _compactBreakpoint;
+
+        // 모바일: child 그대로 — SizedBox 래핑 시 셸 탭 본문 높이가 0이 됨.
+        if (isMobile) return child;
+
+        final maxWidth = width < 1200 ? 980.0 : 1180.0;
+        final horizontalPadding = width < 1200 ? 12.0 : 20.0;
+
+        return ColoredBox(
+          color: Theme.of(context).colorScheme.surfaceContainerLowest,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                child: child,
+              ),
+            ),
+          ),
         );
-
-        if (isMobile) {
-          return ColoredBox(
-            color: const Color(0xFFF5F6FA),
-            child: fullChild,
-          );
-        }
-
-        return fullChild;
       },
       routerConfig: router,
     );

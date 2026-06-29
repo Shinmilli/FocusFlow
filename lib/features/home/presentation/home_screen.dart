@@ -100,12 +100,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       );
 
-      if (!expanded) {
-        return ColoredBox(
-          color: const Color(0xFFF5F6FA),
-          child: scroll,
-        );
-      }
+      if (!expanded) return scroll;
 
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
