@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../router/shell_layout.dart';
+
 /// 모바일(너비 <760) vs 노트북·데스크톱(≥760) 구분.
 abstract final class ResponsiveLayout {
   static const double compactBreakpoint = 760;
@@ -18,13 +20,17 @@ abstract final class ResponsiveLayout {
     return math.min(viewport, constraints.maxWidth);
   }
 
-  static bool isCompact(BuildContext context) =>
-      effectiveWidth(context) < compactBreakpoint;
+  static bool isCompact(BuildContext context) {
+    if (ShellLayoutScope.isCompactShell(context)) return true;
+    return effectiveWidth(context) < compactBreakpoint;
+  }
 
   static bool isExpanded(BuildContext context) => !isCompact(context);
 
-  static bool isCompactForLayout(BuildContext context, [BoxConstraints? constraints]) =>
-      layoutWidth(context, constraints) < compactBreakpoint;
+  static bool isCompactForLayout(BuildContext context, [BoxConstraints? constraints]) {
+    if (ShellLayoutScope.isCompactShell(context)) return true;
+    return layoutWidth(context, constraints) < compactBreakpoint;
+  }
 
   static bool isExpandedForLayout(BuildContext context, [BoxConstraints? constraints]) =>
       !isCompactForLayout(context, constraints);
@@ -40,6 +46,7 @@ abstract final class ResponsiveLayout {
   }
 
   static bool useExpandedLayout(BuildContext context, BoxConstraints constraints) {
+    if (ShellLayoutScope.isCompactShell(context)) return false;
     final expanded = isExpandedForLayout(context, constraints);
     assert(() {
       if (constraints.hasBoundedWidth &&

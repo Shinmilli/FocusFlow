@@ -14,34 +14,42 @@ class MainShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (kDebugMode) {
-          ResponsiveLayout.logDiagnostics(context, tag: 'shell', constraints: constraints);
-        }
+    if (kDebugMode) {
+      ResponsiveLayout.logDiagnostics(context, tag: 'shell');
+    }
 
-        final compact = ResponsiveLayout.isCompactForLayout(context, constraints);
+    final compact = ResponsiveLayout.isCompact(context);
 
-        if (compact) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F6FA),
-            body: SizedBox.expand(child: navigationShell),
-            bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
-          );
-        }
-
-        // 노트북·데스크톱 — 변경 금지.
-        return Scaffold(
+    if (compact) {
+      return ShellLayoutScope(
+        compact: true,
+        child: Scaffold(
           backgroundColor: const Color(0xFFF5F6FA),
-          body: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DesktopNavRail(shell: navigationShell),
-              Expanded(child: ShellBodySlot(child: navigationShell)),
-            ],
+          body: SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                Expanded(child: navigationShell),
+                MainBottomNavigationBar(shell: navigationShell),
+              ],
+            ),
           ),
-        );
-      },
+        ),
+      );
+    }
+
+    return ShellLayoutScope(
+      compact: false,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F6FA),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            DesktopNavRail(shell: navigationShell),
+            Expanded(child: ShellBodySlot(child: navigationShell)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -61,11 +69,9 @@ class MainBottomNavigationBar extends StatelessWidget {
       elevation: 12,
       shadowColor: Colors.black26,
       color: Colors.white,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
-          child: Row(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(8, 10, 8, MediaQuery.paddingOf(context).bottom + 10),
+        child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
@@ -106,7 +112,6 @@ class MainBottomNavigationBar extends StatelessWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:focus_flow/app/focus_flow_app.dart';
+import 'package:focus_flow/app/layout/desktop_nav_rail.dart';
 import 'package:focus_flow/app/router/main_shell_screen.dart';
 import 'package:focus_flow/features/home/presentation/home_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -50,14 +50,13 @@ void main() {
 
     expect(find.text('오늘의 프로젝트'), findsOneWidget);
     expect(find.text('홈'), findsOneWidget);
-
-    // ignore: avoid_print
-    print('shell height=${shellBox.size.height}');
     expect(shell.currentIndex, 0);
   });
 
-  testWidgets('모바일 FocusFlowApp + HomeScreen 히어로 타이틀 표시', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
+  testWidgets('뷰포트 390px면 하단 네비 + 홈 본문 표시', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
 
     final router = GoRouter(
       initialLocation: '/',
@@ -82,16 +81,19 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        child: MaterialApp.router(
-          theme: ThemeData(),
-          routerConfig: router,
-        ),
+        child: MaterialApp.router(routerConfig: router),
       ),
     );
     await tester.pumpAndSettle(const Duration(seconds: 5));
 
     expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('오늘의 프로젝트'), findsOneWidget);
     expect(find.text('홈'), findsOneWidget);
+    expect(find.byType(DesktopNavRail), findsNothing);
+
+    final scroll = tester.renderObject<RenderBox>(find.byType(CustomScrollView));
+    expect(scroll.size.height, greaterThan(400));
+    expect(scroll.size.width, greaterThan(300));
   });
 
   testWidgets('300px 너비에서도 HomeScreen이 모바일 단일 열로 렌더된다', (tester) async {
