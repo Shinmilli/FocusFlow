@@ -52,12 +52,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final expanded = ResponsiveLayout.useExpandedLayout(context, constraints);
-        return _buildHome(context, expanded);
+        return _buildHome(context, expanded, constraints);
       },
     );
   }
 
-  Widget _buildHome(BuildContext context, bool expanded) {
+  Widget _buildHome(BuildContext context, bool expanded, BoxConstraints constraints) {
     final progress = ref.watch(playerProgressProvider);
     final ctx = ref.watch(userLifeContextProvider);
     final lowEnergy = ctx.sleepHours < 6 || ctx.stressLevel >= 4;
@@ -146,7 +146,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final list = _orderedBlocks(blocks);
         final gridCrossCount = expanded
             ? HomeTaskGridLayout.crossAxisCountForWidth(
-                ResponsiveLayout.effectiveWidth(context),
+                ResponsiveLayout.layoutWidth(context, constraints),
               )
             : HomeTaskGridLayout.compactCrossCount;
         final gridPadding = expanded

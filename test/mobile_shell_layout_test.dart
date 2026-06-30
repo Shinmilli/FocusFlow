@@ -84,11 +84,23 @@ void main() {
       ProviderScope(
         child: MaterialApp.router(
           theme: ThemeData(),
-          builder: (context, child) {
-            if (child == null) return const SizedBox.shrink();
-            return child;
-          },
           routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+
+    expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.text('홈'), findsOneWidget);
+  });
+
+  testWidgets('300px 너비에서도 HomeScreen이 모바일 단일 열로 렌더된다', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(300, 640));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: const HomeScreen(),
         ),
       ),
     );
@@ -96,15 +108,23 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
 
     expect(find.text('오늘의 프로젝트'), findsOneWidget);
+    expect(find.text('AI 도우미'), findsNothing);
   });
 
-  testWidgets('무한 너비 제약에서도 HomeScreen이 모바일 단일 열로 렌더된다', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
+  testWidgets('넓은 LayoutBuilder 제약 + 좁은 뷰포트면 모바일 레이아웃', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 640));
 
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
-          home: const HomeScreen(),
+          home: LayoutBuilder(
+            builder: (context, constraints) {
+              return SizedBox(
+                width: 980,
+                child: const HomeScreen(),
+              );
+            },
+          ),
         ),
       ),
     );

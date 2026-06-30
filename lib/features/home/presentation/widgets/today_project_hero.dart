@@ -290,7 +290,7 @@ class _HeroLevelStatsSection extends StatelessWidget {
         final primary = Theme.of(context).colorScheme.primary;
         final need = PlayerProgress.xpForLevel(progress.level);
         final ratio = need == 0 ? 0.0 : progress.xp / need;
-        final compact = ResponsiveLayout.isCompactConstraints(constraints);
+        final compact = ResponsiveLayout.isCompactForLayout(context, constraints);
 
         if (compact && onStartFocus != null) {
           return Column(

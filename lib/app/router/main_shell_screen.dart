@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,26 +14,34 @@ class MainShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = ResponsiveLayout.isCompact(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (kDebugMode) {
+          ResponsiveLayout.logDiagnostics(context, tag: 'shell', constraints: constraints);
+        }
 
-    if (compact) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF5F6FA),
-        body: navigationShell,
-        bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
-      );
-    }
+        final compact = ResponsiveLayout.isCompactForLayout(context, constraints);
 
-    // 노트북·데스크톱 — 변경 금지.
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          DesktopNavRail(shell: navigationShell),
-          Expanded(child: ShellBodySlot(child: navigationShell)),
-        ],
-      ),
+        if (compact) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF5F6FA),
+            body: SizedBox.expand(child: navigationShell),
+            bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
+          );
+        }
+
+        // 노트북·데스크톱 — 변경 금지.
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F6FA),
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DesktopNavRail(shell: navigationShell),
+              Expanded(child: ShellBodySlot(child: navigationShell)),
+            ],
+          ),
+        );
+      },
     );
   }
 }
