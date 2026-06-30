@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,10 +13,6 @@ class MainShellScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kDebugMode) {
-      ResponsiveLayout.logDiagnostics(context, tag: 'shell');
-    }
-
     final compact = ResponsiveLayout.isCompact(context);
 
     if (compact) {
@@ -46,7 +41,7 @@ class MainShellScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             DesktopNavRail(shell: navigationShell),
-            Expanded(child: ShellBodySlot(child: navigationShell)),
+            Expanded(child: navigationShell),
           ],
         ),
       ),
@@ -72,46 +67,46 @@ class MainBottomNavigationBar extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.fromLTRB(8, 10, 8, MediaQuery.paddingOf(context).bottom + 10),
         child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Center(
-                  child: _HomeDestination(
-                    selected: idx == 0,
-                    onTap: () => shell.goBranch(0),
-                  ),
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Center(
+                child: _HomeDestination(
+                  selected: idx == 0,
+                  onTap: () => shell.goBranch(0),
                 ),
               ),
-              Expanded(
-                child: Center(
-                  child: _CenterAddButton(
-                    onTap: () => context.push('/plan/select'),
-                  ),
+            ),
+            Expanded(
+              child: Center(
+                child: _CenterAddButton(
+                  onTap: () => context.push('/plan/select'),
                 ),
               ),
-              Expanded(
-                child: Center(
-                  child: _SideDestination(
-                    selected: idx == 1,
-                    icon: Icons.calendar_month_rounded,
-                    label: '주간',
-                    onTap: () => shell.goBranch(1),
-                  ),
+            ),
+            Expanded(
+              child: Center(
+                child: _SideDestination(
+                  selected: idx == 1,
+                  icon: Icons.calendar_month_rounded,
+                  label: '주간',
+                  onTap: () => shell.goBranch(1),
                 ),
               ),
-              Expanded(
-                child: Center(
-                  child: _SideDestination(
-                    selected: idx == 2,
-                    icon: Icons.person_outline_rounded,
-                    label: '프로필',
-                    onTap: () => shell.goBranch(2),
-                  ),
+            ),
+            Expanded(
+              child: Center(
+                child: _SideDestination(
+                  selected: idx == 2,
+                  icon: Icons.person_outline_rounded,
+                  label: '프로필',
+                  onTap: () => shell.goBranch(2),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
     );
   }
 }
