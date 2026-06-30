@@ -51,7 +51,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final expanded = ResponsiveLayout.isExpandedConstraints(constraints);
+        final expanded = ResponsiveLayout.useExpandedLayout(context, constraints);
         return _buildHome(context, expanded);
       },
     );

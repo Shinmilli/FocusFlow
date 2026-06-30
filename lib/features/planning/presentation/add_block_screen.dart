@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../app/layout/desktop_nav_rail.dart';
-import '../../../app/layout/responsive_layout.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../../ai_agent/presentation/ai_providers.dart';
 import '../../user_state/presentation/user_context_providers.dart';
@@ -118,198 +115,103 @@ class _AddBlockScreenState extends ConsumerState<AddBlockScreen> {
     context.pop();
   }
 
-  Widget _introCard(BuildContext context, {required bool expanded}) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Text(
-          expanded
-              ? '큰 일을 적으면 AI가 “시작 가능한 체크리스트(최대 4개)”로 쪼개요. '
-                  '마음에 안 들면 오른쪽에서 직접 수정해도 돼요.'
-              : '큰 일을 적으면 AI가 “시작 가능한 체크리스트(최대 4개)”로 쪼개요. '
-                  '마음에 안 들면 아래에서 직접 수정해도 돼요.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ),
-    );
-  }
-
-  Widget _titleField() {
-    return TextField(
-      controller: _titleCtrl,
-      enabled: !_loading,
-      decoration: const InputDecoration(
-        labelText: '큰 일 (예: 과제 제출)',
-        border: OutlineInputBorder(),
-      ),
-      onSubmitted: (_) => _runDecompose(),
-    );
-  }
-
-  Widget _aiButton() {
-    return FilledButton.icon(
-      onPressed: _loading ? null : _runDecompose,
-      icon: const Icon(Icons.auto_awesome),
-      label: Text(_loading ? '분해 중...' : 'AI로 작은 단계 만들기'),
-    );
-  }
-
-  Widget _saveButton() {
-    return FilledButton(
-      style: AppChrome.primaryActionNavyStyle,
-      onPressed: _loading ? null : _save,
-      child: const Text('백로그에 저장'),
-    );
-  }
-
-  Widget _checklistSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Text('체크리스트', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(width: 8),
-            Text(
-              '(최대 4개)',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const Spacer(),
-            TextButton.icon(
-              onPressed: (_unitCtrls.length >= 4 || _loading) ? null : _addUnit,
-              icon: const Icon(Icons.add),
-              label: const Text('추가'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_unitCtrls.isEmpty)
-          Text(
-            '먼저 AI로 생성하거나 직접 추가해 주세요.',
-            style: Theme.of(context).textTheme.bodySmall,
-          )
-        else
-          for (var i = 0; i < _unitCtrls.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _unitCtrls[i],
-                      enabled: !_loading,
-                      decoration: InputDecoration(
-                        labelText: '단계 ${i + 1}',
-                        border: const OutlineInputBorder(),
-                      ),
-                      textInputAction: TextInputAction.next,
-                      onSubmitted: (_) {
-                        if (i == _unitCtrls.length - 1) _addUnit();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: '삭제',
-                    onPressed: _loading ? null : () => _removeUnit(i),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-      ],
-    );
-  }
-
-  Widget _leftColumn(BuildContext context, {required bool expanded}) {
-    return ListView(
-      padding: EdgeInsets.fromLTRB(16, expanded ? 16 : 0, expanded ? 12 : 0, 24),
-      children: [
-        if (expanded)
-          Text(
-            '새 블록 추가',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1A1C26),
-                ),
-          ),
-        if (expanded) const SizedBox(height: 12),
-        _introCard(context, expanded: expanded),
-        const SizedBox(height: 12),
-        _titleField(),
-        const SizedBox(height: 12),
-        _aiButton(),
-        const SizedBox(height: 24),
-        _saveButton(),
-      ],
-    );
-  }
-
-  static BoxDecoration _checklistPanelDecoration() {
-    return BoxDecoration(
-      color: AppChrome.pageBackground,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppChrome.softBorder),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final expanded = ResponsiveLayout.isExpanded(context);
-
-    final body = expanded
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const DesktopNavRail(),
-              Expanded(
-                flex: 2,
-                child: _leftColumn(context, expanded: true),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: AppChrome.topBarBackground,
+        foregroundColor: AppChrome.topBarForeground,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('새 블록 추가'),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                '큰 일을 적으면 AI가 “시작 가능한 체크리스트(최대 4개)”로 쪼개요. '
+                '마음에 안 들면 아래에서 직접 수정해도 돼요.',
+                style: Theme.of(context).textTheme.bodySmall,
               ),
-              Expanded(
-                flex: 3,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 16, 16, 16),
-                  child: DecoratedBox(
-                    decoration: _checklistPanelDecoration(),
-                    child: ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        _checklistSection(context),
-                      ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _titleCtrl,
+            enabled: !_loading,
+            decoration: const InputDecoration(
+              labelText: '큰 일 (예: 과제 제출)',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _runDecompose(),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _loading ? null : _runDecompose,
+            icon: const Icon(Icons.auto_awesome),
+            label: Text(_loading ? '분해 중...' : 'AI로 작은 단계 만들기'),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('체크리스트', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(width: 8),
+              Text(
+                '(최대 4개)',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: (_unitCtrls.length >= 4) ? null : _addUnit,
+                icon: const Icon(Icons.add),
+                label: const Text('추가'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_unitCtrls.isEmpty)
+            Text(
+              '먼저 AI로 생성하거나 직접 추가해 주세요.',
+              style: Theme.of(context).textTheme.bodySmall,
+            )
+          else
+            for (var i = 0; i < _unitCtrls.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _unitCtrls[i],
+                        enabled: !_loading,
+                        decoration: InputDecoration(
+                          labelText: '단계 ${i + 1}',
+                          border: const OutlineInputBorder(),
+                        ),
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) {
+                          if (i == _unitCtrls.length - 1) _addUnit();
+                        },
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: '삭제',
+                      onPressed: _loading ? null : () => _removeUnit(i),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          )
-        : ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _introCard(context, expanded: expanded),
-              const SizedBox(height: 12),
-              _titleField(),
-              const SizedBox(height: 12),
-              _aiButton(),
-              const SizedBox(height: 12),
-              _checklistSection(context),
-              const SizedBox(height: 4),
-              _saveButton(),
-            ],
-          );
-
-    return Scaffold(
-      backgroundColor: AppChrome.pageBackground,
-      appBar: expanded
-          ? null
-          : AppBar(
-              backgroundColor: AppChrome.topBarBackground,
-              foregroundColor: AppChrome.topBarForeground,
-              surfaceTintColor: Colors.transparent,
-              systemOverlayStyle: SystemUiOverlayStyle.light,
-              title: const Text('새 블록 추가'),
-            ),
-      body: expanded ? SafeArea(child: body) : body,
+          const SizedBox(height: 4),
+          FilledButton(
+            onPressed: _loading ? null : _save,
+            child: const Text('백로그에 저장'),
+          ),
+        ],
+      ),
     );
   }
 }

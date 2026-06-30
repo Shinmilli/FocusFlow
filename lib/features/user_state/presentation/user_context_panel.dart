@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/layout/responsive_layout.dart';
 import '../../../app/theme/app_chrome.dart';
 import '../domain/user_life_context.dart';
 import 'daily_context_gate_providers.dart';
@@ -63,10 +62,22 @@ class _UserContextPanelState extends ConsumerState<UserContextPanel> {
     );
   }
 
-  Widget _sliderSection(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
+    final mult = ref.watch(userLifeContextProvider).planIntensityMultiplier;
+    final bodySmall = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: const Color(0xFF5C6378),
+        );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (!widget.compact)
+          Text(
+            '이 값들은 AI가 오늘 계획 강도를 자동으로 줄이거나 늘릴 때 씁니다.',
+            style: bodySmall,
+          ),
+        if (!widget.compact) const SizedBox(height: 10),
         Text(
           '수면 시간: ${_sleep.toStringAsFixed(1)}h',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -90,85 +101,27 @@ class _UserContextPanelState extends ConsumerState<UserContextPanel> {
           label: '$_stress',
           onChanged: (v) => setState(() => _stress = v.round()),
         ),
-      ],
-    );
-  }
-
-  Widget _toggleRow(String label, bool value, ValueChanged<bool> onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _toggleSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _toggleRow('스마트폰 과의존', _phone, (v) => setState(() => _phone = v)),
-        _toggleRow('시험기간', _exam, (v) => setState(() => _exam = v)),
-        _toggleRow('번아웃 위험', _burnout, (v) => setState(() => _burnout = v)),
-      ],
-    );
-  }
-
-  Widget _controlsSection(BuildContext context) {
-    final useSplit = widget.compact || ResponsiveLayout.isExpanded(context);
-    if (useSplit) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _sliderSection(context)),
-          const SizedBox(width: 12),
-          Expanded(child: _toggleSection()),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _sliderSection(context),
-        const SizedBox(height: 4),
-        _toggleSection(),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final mult = ref.watch(userLifeContextProvider).planIntensityMultiplier;
-    final bodySmall = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: const Color(0xFF5C6378),
-        );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!widget.compact)
-          Text(
-            '이 값들은 AI가 오늘 계획 강도를 자동으로 줄이거나 늘릴 때 씁니다.',
-            style: bodySmall,
-          ),
-        if (!widget.compact) const SizedBox(height: 10),
-        _controlsSection(context),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: const Text('스마트폰 과의존 느낌'),
+          value: _phone,
+          onChanged: (v) => setState(() => _phone = v),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: const Text('시험기간'),
+          value: _exam,
+          onChanged: (v) => setState(() => _exam = v),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          title: const Text('번아웃 위험'),
+          value: _burnout,
+          onChanged: (v) => setState(() => _burnout = v),
+        ),
         const SizedBox(height: 6),
         Text(
           '오늘 계획 강도: ${mult.toStringAsFixed(2)}',

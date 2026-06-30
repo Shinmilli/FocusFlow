@@ -97,4 +97,21 @@ void main() {
 
     expect(find.text('오늘의 프로젝트'), findsOneWidget);
   });
+
+  testWidgets('무한 너비 제약에서도 HomeScreen이 모바일 단일 열로 렌더된다', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          home: const HomeScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(find.text('오늘의 프로젝트'), findsOneWidget);
+    expect(find.text('AI 도우미'), findsNothing);
+  });
 }

@@ -18,11 +18,7 @@ class MainShellScreen extends StatelessWidget {
     if (compact) {
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
-        body: Column(
-          children: [
-            Expanded(child: navigationShell),
-          ],
-        ),
+        body: navigationShell,
         bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
       );
     }

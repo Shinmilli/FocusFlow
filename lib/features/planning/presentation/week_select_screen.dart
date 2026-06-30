@@ -72,7 +72,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     final asyncSelectedBlocks = ref.watch(blocksForDateProvider(selectedKey));
 
     final shell = StatefulNavigationShell.maybeOf(context);
-    final expanded = ResponsiveLayout.isExpandedConstraints(constraints);
+    final expanded = ResponsiveLayout.useExpandedLayout(context, constraints);
 
     Widget buildPlanList(List<TaskBlock> selectedBlocks) {
       final selected = selectedBlocks.map((b) => b.id).toSet();

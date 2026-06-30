@@ -19,9 +19,21 @@ abstract final class ResponsiveLayout {
 
   static bool isExpanded(BuildContext context) => !isCompact(context);
 
-  static bool isCompactConstraints(BoxConstraints constraints) =>
-      constraints.maxWidth < compactBreakpoint;
+  static bool isCompactConstraints(BoxConstraints constraints) {
+    if (!constraints.hasBoundedWidth) return true;
+    return constraints.maxWidth < compactBreakpoint;
+  }
 
-  static bool isExpandedConstraints(BoxConstraints constraints) =>
-      !isCompactConstraints(constraints);
+  static bool isExpandedConstraints(BoxConstraints constraints) {
+    if (!constraints.hasBoundedWidth) return false;
+    return constraints.maxWidth >= compactBreakpoint;
+  }
+
+  /// LayoutBuilder + 뷰포트 — 본문 너비가 무한일 때(셸·스크롤) MediaQuery로 보정.
+  static bool useExpandedLayout(BuildContext context, BoxConstraints constraints) {
+    if (constraints.hasBoundedWidth) {
+      return isExpandedConstraints(constraints);
+    }
+    return isExpanded(context);
+  }
 }

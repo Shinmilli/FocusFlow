@@ -78,7 +78,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final signedIn = auth.phase == AuthPhase.authenticated && auth.user != null;
     final shell = StatefulNavigationShell.maybeOf(context);
-    final expanded = ResponsiveLayout.isExpandedConstraints(constraints);
+    final expanded = ResponsiveLayout.useExpandedLayout(context, constraints);
     final accountTitleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w700,
           color: const Color(0xFF1A1C26),
