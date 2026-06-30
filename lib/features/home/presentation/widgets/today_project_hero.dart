@@ -150,9 +150,6 @@ class _HeroLevelStatsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final need = PlayerProgress.xpForLevel(progress.level);
-    final ratio = need == 0 ? 0.0 : progress.xp / need;
-    final primary = Theme.of(context).colorScheme.primary;
     final tierBg = FlowTrackTierStyle.accent(tierEn);
     final tierFg = FlowTrackTierStyle.onAccent(tierBg);
 
@@ -204,72 +201,7 @@ class _HeroLevelStatsSection extends StatelessWidget {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'LEVEL',
-                          style: TextStyle(
-                            color: _muted.withValues(alpha: 0.85),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Lv.${progress.level}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            height: 1.05,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(999),
-                        child: LinearProgressIndicator(
-                          value: ratio.clamp(0.0, 1.0),
-                          minHeight: 12,
-                          backgroundColor: _trackBg,
-                          color: primary,
-                        ),
-                      ),
-                    ),
-                    if (showNumericStats) ...[
-                      const SizedBox(width: 12),
-                      Text(
-                        '${progress.xp}/$need',
-                        style: const TextStyle(
-                          color: _muted,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (onStartFocus != null) ...[
-                const SizedBox(width: 20),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: _FocusStartButton(onTap: onStartFocus!, lowEnergy: lowEnergy),
-                ),
-              ],
-            ],
-          ),
+          child: _buildLevelAndFocusRow(context),
         ),
         if (showNumericStats) ...[
           const SizedBox(height: 20),
@@ -294,6 +226,100 @@ class _HeroLevelStatsSection extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _levelProgressRow(Color primary, int need, double ratio) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'LEVEL',
+              style: TextStyle(
+                color: _muted.withValues(alpha: 0.85),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Lv.${progress.level}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                height: 1.05,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: ratio.clamp(0.0, 1.0),
+              minHeight: 12,
+              backgroundColor: _trackBg,
+              color: primary,
+            ),
+          ),
+        ),
+        if (showNumericStats) ...[
+          const SizedBox(width: 12),
+          Text(
+            '${progress.xp}/$need',
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildLevelAndFocusRow(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final primary = Theme.of(context).colorScheme.primary;
+        final need = PlayerProgress.xpForLevel(progress.level);
+        final ratio = need == 0 ? 0.0 : progress.xp / need;
+        final compact = ResponsiveLayout.isCompactConstraints(constraints);
+
+        if (compact && onStartFocus != null) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _levelProgressRow(primary, need, ratio),
+              const SizedBox(height: 14),
+              Align(
+                alignment: Alignment.center,
+                child: _FocusStartButton(onTap: onStartFocus!, lowEnergy: lowEnergy),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(child: _levelProgressRow(primary, need, ratio)),
+            if (onStartFocus != null) ...[
+              const SizedBox(width: 20),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: _FocusStartButton(onTap: onStartFocus!, lowEnergy: lowEnergy),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

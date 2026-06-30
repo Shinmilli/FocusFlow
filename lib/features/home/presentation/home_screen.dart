@@ -49,6 +49,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final expanded = ResponsiveLayout.isExpandedConstraints(constraints);
+        return _buildHome(context, expanded);
+      },
+    );
+  }
+
+  Widget _buildHome(BuildContext context, bool expanded) {
     final progress = ref.watch(playerProgressProvider);
     final ctx = ref.watch(userLifeContextProvider);
     final lowEnergy = ctx.sleepHours < 6 || ctx.stressLevel >= 4;
@@ -87,8 +96,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       showNumericStats: false,
     );
 
-    final expanded = ResponsiveLayout.isExpanded(context);
-
     Widget scrollHome(List<Widget> bodySlivers) {
       final scroll = CustomScrollView(
         slivers: [
@@ -100,12 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       );
 
-      if (!expanded) {
-        return Scaffold(
-          backgroundColor: const Color(0xFFF5F6FA),
-          body: scroll,
-        );
-      }
+      if (!expanded) return scroll;
 
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -142,8 +144,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ]),
       data: (blocks) {
         final list = _orderedBlocks(blocks);
-        final gridCrossCount = HomeTaskGridLayout.crossAxisCount(context);
-        final gridPadding = HomeTaskGridLayout.gridHorizontalPadding(context);
+        final gridCrossCount = expanded
+            ? HomeTaskGridLayout.crossAxisCountForWidth(
+                ResponsiveLayout.effectiveWidth(context),
+              )
+            : HomeTaskGridLayout.compactCrossCount;
+        final gridPadding = expanded
+            ? HomeTaskGridLayout.gridPaddingExpanded
+            : HomeTaskGridLayout.gridPaddingCompact;
         return scrollHome([
           SliverToBoxAdapter(child: heroScrollBody),
           if (list.isEmpty)

@@ -37,10 +37,24 @@ abstract final class HomeTaskGridLayout {
     return contentW - sideW;
   }
 
+  static int crossAxisCountForWidth(double viewportWidth) {
+    if (viewportWidth < ResponsiveLayout.compactBreakpoint) return compactCrossCount;
+
+    final mainW = homeMainColumnWidth(viewportWidth);
+    final pad = gridPaddingExpanded * 2;
+    final minCard = minMobileCardWidth;
+
+    for (var cols = maxExpandedCrossCount; cols >= compactCrossCount; cols--) {
+      final cardW = (mainW - pad - gridSpacing * (cols - 1)) / cols;
+      if (cardW >= minCard) return cols;
+    }
+    return compactCrossCount;
+  }
+
   static int crossAxisCount(BuildContext context) {
     if (ResponsiveLayout.isCompact(context)) return compactCrossCount;
 
-    final mainW = homeMainColumnWidth(MediaQuery.sizeOf(context).width);
+    final mainW = homeMainColumnWidth(ResponsiveLayout.effectiveWidth(context));
     final pad = gridPaddingExpanded * 2;
     final minCard = minMobileCardWidth;
 

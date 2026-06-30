@@ -58,6 +58,12 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildWeek(context, constraints),
+    );
+  }
+
+  Widget _buildWeek(BuildContext context, BoxConstraints constraints) {
     final start = _startOfWeek(_selectedDay);
     final days = List.generate(7, (i) => start.add(Duration(days: i)));
     final selectedKey = _dateKey(_selectedDay);
@@ -66,7 +72,7 @@ class _WeekSelectScreenState extends ConsumerState<WeekSelectScreen> {
     final asyncSelectedBlocks = ref.watch(blocksForDateProvider(selectedKey));
 
     final shell = StatefulNavigationShell.maybeOf(context);
-    final expanded = ResponsiveLayout.isExpanded(context);
+    final expanded = ResponsiveLayout.isExpandedConstraints(constraints);
 
     Widget buildPlanList(List<TaskBlock> selectedBlocks) {
       final selected = selectedBlocks.map((b) => b.id).toSet();

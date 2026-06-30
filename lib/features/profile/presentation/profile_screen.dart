@@ -64,6 +64,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _buildProfile(context, constraints),
+    );
+  }
+
+  Widget _buildProfile(BuildContext context, BoxConstraints constraints) {
     final auth = ref.watch(authControllerProvider);
     final progress = ref.watch(playerProgressProvider);
     final intensity = ref.watch(coachNudgeIntensityProvider);
@@ -72,7 +78,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final signedIn = auth.phase == AuthPhase.authenticated && auth.user != null;
     final shell = StatefulNavigationShell.maybeOf(context);
-    final expanded = ResponsiveLayout.isExpanded(context);
+    final expanded = ResponsiveLayout.isExpandedConstraints(constraints);
     final accountTitleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w700,
           color: const Color(0xFF1A1C26),

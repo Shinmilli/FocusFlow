@@ -6,13 +6,12 @@ import '../features/auth/presentation/auth_providers.dart';
 import '../features/notifications/presentation/notification_providers.dart';
 import '../features/sync/presentation/sync_providers.dart';
 import '../features/sync/sync_invalidation.dart';
+import 'layout/responsive_layout.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
 class FocusFlowApp extends ConsumerWidget {
   const FocusFlowApp({super.key});
-
-  static const double _compactBreakpoint = 760;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,11 +34,9 @@ class FocusFlowApp extends ConsumerWidget {
       builder: (context, child) {
         if (child == null) return const SizedBox.shrink();
 
-        final width = MediaQuery.sizeOf(context).width;
-        final isMobile = width < _compactBreakpoint;
+        if (ResponsiveLayout.isCompact(context)) return child;
 
-        if (isMobile) return child;
-
+        final width = ResponsiveLayout.effectiveWidth(context);
         final maxWidth = width < 1200 ? 980.0 : 1180.0;
         final horizontalPadding = width < 1200 ? 12.0 : 20.0;
 
