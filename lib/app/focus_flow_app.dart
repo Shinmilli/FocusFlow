@@ -38,13 +38,7 @@ class FocusFlowApp extends ConsumerWidget {
         final width = MediaQuery.sizeOf(context).width;
         final isMobile = width < _compactBreakpoint;
 
-        // 모바일: 고정 SizedBox 없이 배경만 — 셸 본문 높이는 ShellBodySlot에서 처리.
-        if (isMobile) {
-          return ColoredBox(
-            color: const Color(0xFFF5F6FA),
-            child: child,
-          );
-        }
+        if (isMobile) return child;
 
         final maxWidth = width < 1200 ? 980.0 : 1180.0;
         final horizontalPadding = width < 1200 ? 12.0 : 20.0;

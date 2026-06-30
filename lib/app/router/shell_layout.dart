@@ -1,20 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-/// IndexedStack이 셸 본문 영역을 꽉 채우도록 (모바일 웹 높이 0 방지).
-Widget shellIndexedStackContainer(
-  BuildContext context,
-  StatefulNavigationShell navigationShell,
-  List<Widget> children,
-) {
-  return IndexedStack(
-    index: navigationShell.currentIndex,
-    sizing: StackFit.expand,
-    children: children,
-  );
-}
-
-/// Scaffold body 안에서 navigationShell에 명시적 높이 전달.
+/// 노트북·데스크톱 셸 본문 슬롯 (모바일은 Column+Expanded 사용).
 class ShellBodySlot extends StatelessWidget {
   const ShellBodySlot({super.key, required this.child});
 

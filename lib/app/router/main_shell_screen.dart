@@ -16,13 +16,19 @@ class MainShellScreen extends StatelessWidget {
     final compact = ResponsiveLayout.isCompact(context);
 
     if (compact) {
+      // 모바일: Expanded로 본문 높이 확보 (ShellBodySlot은 maxHeight 0 이슈).
       return Scaffold(
         backgroundColor: const Color(0xFFF5F6FA),
-        body: ShellBodySlot(child: navigationShell),
+        body: Column(
+          children: [
+            Expanded(child: navigationShell),
+          ],
+        ),
         bottomNavigationBar: MainBottomNavigationBar(shell: navigationShell),
       );
     }
 
+    // 노트북·데스크톱 — 아래 레이아웃 변경 금지.
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       body: Row(

@@ -26,7 +26,6 @@ import '../../features/flow_track/presentation/flow_track_screen.dart';
 import '../../features/user_state/presentation/user_context_screen.dart';
 import '../../features/user_state/presentation/daily_context_gate_providers.dart';
 import 'main_shell_screen.dart';
-import 'shell_layout.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -100,11 +99,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),
       ),
-      StatefulShellRoute(
+      StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainShellScreen(navigationShell: navigationShell);
         },
-        navigatorContainerBuilder: shellIndexedStackContainer,
         branches: [
           StatefulShellBranch(
             routes: [
