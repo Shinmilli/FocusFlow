@@ -31,6 +31,24 @@ FocusFlow는 성인 ADHD와 “계획은 잘 세우지만 착수가 어려운”
 
 ## 주요 기능
 
+<table>
+  <tr>
+    <td align="center" width="33%"><strong>오늘의 프로젝트</strong><br/><img src="docs/images/home-today.jpg" width="220" alt="오늘의 프로젝트" /></td>
+    <td align="center" width="33%"><strong>집중 모드</strong><br/><img src="docs/images/focus-ready.jpg" width="220" alt="집중 모드" /></td>
+    <td align="center" width="33%"><strong>5분 휴식</strong><br/><img src="docs/images/focus-break.jpg" width="220" alt="5분 휴식" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>오늘 선택</strong><br/><img src="docs/images/today-select.jpg" width="220" alt="오늘 선택" /></td>
+    <td align="center"><strong>이번 주 조정</strong><br/><img src="docs/images/week-plan.jpg" width="220" alt="이번 주 조정" /></td>
+    <td align="center"><strong>오늘 상태</strong><br/><img src="docs/images/daily-context.jpg" width="220" alt="오늘 상태" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>AI 제안</strong><br/><img src="docs/images/ai-proposal.jpg" width="220" alt="AI 제안" /></td>
+    <td align="center"><strong>딴생각 목록</strong><br/><img src="docs/images/parked-thoughts.jpg" width="220" alt="딴생각 목록" /></td>
+    <td align="center"><strong>플로우 트랙</strong><br/><img src="docs/images/flow-track.jpg" width="220" alt="플로우 트랙" /></td>
+  </tr>
+</table>
+
 ### 실행
 
 - **강제 시작**: 3초 카운트다운 후 집중 세션에 바로 진입합니다. 50분 / 25분을 고를 수 있습니다.
@@ -57,24 +75,6 @@ FocusFlow는 성인 ADHD와 “계획은 잘 세우지만 착수가 어려운”
 
 - **XP · 레벨 · 연속일**: 블록을 끝낼수록 레벨이 오르고 연속이 쌓입니다.
 - **플로우 트랙**: 주 5회 집중 완료를 목표로 Iron → Mythic 티어가 올라갑니다.
-
-<table>
-  <tr>
-    <td align="center" width="33%"><strong>오늘의 프로젝트</strong><br/><img src="docs/images/home-today.jpg" width="220" alt="오늘의 프로젝트" /></td>
-    <td align="center" width="33%"><strong>집중 모드</strong><br/><img src="docs/images/focus-ready.jpg" width="220" alt="집중 모드" /></td>
-    <td align="center" width="33%"><strong>5분 휴식</strong><br/><img src="docs/images/focus-break.jpg" width="220" alt="5분 휴식" /></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>오늘 선택</strong><br/><img src="docs/images/today-select.jpg" width="220" alt="오늘 선택" /></td>
-    <td align="center"><strong>이번 주 조정</strong><br/><img src="docs/images/week-plan.jpg" width="220" alt="이번 주 조정" /></td>
-    <td align="center"><strong>오늘 상태</strong><br/><img src="docs/images/daily-context.jpg" width="220" alt="오늘 상태" /></td>
-  </tr>
-  <tr>
-    <td align="center"><strong>AI 제안</strong><br/><img src="docs/images/ai-proposal.jpg" width="220" alt="AI 제안" /></td>
-    <td align="center"><strong>딴생각 목록</strong><br/><img src="docs/images/parked-thoughts.jpg" width="220" alt="딴생각 목록" /></td>
-    <td align="center"><strong>플로우 트랙</strong><br/><img src="docs/images/flow-track.jpg" width="220" alt="플로우 트랙" /></td>
-  </tr>
-</table>
 
 ## 팀 구성
 
