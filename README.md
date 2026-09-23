@@ -3,11 +3,7 @@
 **신경다양성을 위한 AI 인지 보조 플랫폼** — 실행 기능을 넘어, 실제 행동을 만듭니다.
 
 > 관리 도구는 넘치지만, 실행 도구는 없습니다.  
-> FocusFlow는 계획만 쌓는 앱이 아니라 **“지금 바로 시작”**하게 만드는 ADHD 지향 실행 앱입니다.
-
-<p align="center">
-  <img src="docs/images/home-today.jpg" alt="오늘의 프로젝트 홈 화면" width="280" />
-</p>
+> FocusFlow는 계획만 쌓는 앱이 아니라 지금 바로 시작하게 만드는 ADHD 지향 실행 앱입니다.
 
 ## Table of Contents
 
@@ -64,12 +60,19 @@ FocusFlow는 성인 ADHD와 “계획은 잘 세우지만 착수가 어려운”
 
 <table>
   <tr>
-    <td align="center" width="50%"><strong>오늘의 프로젝트</strong><br/><img src="docs/images/home-today.jpg" width="240" alt="오늘의 프로젝트" /></td>
-    <td align="center" width="50%"><strong>집중 모드</strong><br/><img src="docs/images/focus-ready.jpg" width="240" alt="집중 모드 시작 대기" /></td>
+    <td align="center" width="33%"><strong>오늘의 프로젝트</strong><br/><img src="docs/images/home-today.jpg" width="220" alt="오늘의 프로젝트" /></td>
+    <td align="center" width="33%"><strong>집중 모드</strong><br/><img src="docs/images/focus-ready.jpg" width="220" alt="집중 모드" /></td>
+    <td align="center" width="33%"><strong>5분 휴식</strong><br/><img src="docs/images/focus-break.jpg" width="220" alt="5분 휴식" /></td>
   </tr>
   <tr>
-    <td align="center"><strong>오늘 선택</strong><br/><img src="docs/images/today-select.jpg" width="240" alt="오늘 선택" /></td>
-    <td align="center"><strong>플로우 트랙</strong><br/><img src="docs/images/flow-track.jpg" width="240" alt="플로우 트랙" /></td>
+    <td align="center"><strong>오늘 선택</strong><br/><img src="docs/images/today-select.jpg" width="220" alt="오늘 선택" /></td>
+    <td align="center"><strong>이번 주 조정</strong><br/><img src="docs/images/week-plan.jpg" width="220" alt="이번 주 조정" /></td>
+    <td align="center"><strong>오늘 상태</strong><br/><img src="docs/images/daily-context.jpg" width="220" alt="오늘 상태" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong>AI 제안</strong><br/><img src="docs/images/ai-proposal.jpg" width="220" alt="AI 제안" /></td>
+    <td align="center"><strong>딴생각 목록</strong><br/><img src="docs/images/parked-thoughts.jpg" width="220" alt="딴생각 목록" /></td>
+    <td align="center"><strong>플로우 트랙</strong><br/><img src="docs/images/flow-track.jpg" width="220" alt="플로우 트랙" /></td>
   </tr>
 </table>
 
@@ -82,35 +85,9 @@ FocusFlow는 성인 ADHD와 “계획은 잘 세우지만 착수가 어려운”
 
 ## 시스템 아키텍처
 
-```mermaid
-flowchart TB
-  subgraph Client["Flutter 앱 · iOS / Android / Web"]
-    UI["화면 · Riverpod · go_router"]
-    Local["SharedPreferences / Secure Storage"]
-    DeviceCal["기기 캘린더"]
-  end
-
-  subgraph Server["Render · Node.js 20 + Express"]
-    API["JWT 인증 · /sync/state"]
-    Gemini["Gemini API 프록시"]
-    MCP["MCP OAuth"]
-    PG[("PostgreSQL")]
-  end
-
-  subgraph Ext["외부 서비스"]
-    GCal["Google Calendar"]
-    Notion["Notion"]
-  end
-
-  UI --> Local
-  UI --> DeviceCal
-  UI -->|"HTTPS + Bearer JWT"| API
-  API --> PG
-  API --> Gemini
-  MCP --> GCal
-  MCP --> Notion
-  UI --> MCP
-```
+<p align="center">
+  <img src="docs/images/architecture.png" alt="FocusFlow 시스템 아키텍처" width="720" />
+</p>
 
 - **클라이언트**: 할 일·집중 로그·레벨은 기기 로컬에 저장하고, 로그인 시 서버 JSON 페이로드로 동기화합니다.
 - **서버**: 계정(이메일/비밀번호), 닉네임, 동기화 상태, Gemini 호출, Calendar/Notion OAuth를 담당합니다. Gemini 키는 서버에만 둡니다.
@@ -171,10 +148,6 @@ flowchart TB
 - 컨디션이 나쁘면 첫 단계를 더 작게 잡도록 프롬프트가 조정됩니다.
 - 하루에 고른 블록이 이미 3개면, AI 제안은 **백로그에만** 들어갑니다.
 
-<p align="center">
-  <img src="docs/images/ai-proposal.jpg" alt="AI 오늘 계획 제안" width="320" />
-</p>
-
 ### 강제 시작 · Time Flow · Recovery
 
 작업만 고르고 고민하는 시간을 앱이 끊습니다.
@@ -184,20 +157,9 @@ flowchart TB
 - **자료 찾기 토글**: 과제용 검색은 이탈이 아니라고 스스로 표시할 수 있습니다.
 - **5분 휴식**: 집중 타이머는 유지한 채 안쪽만 휴식 카운트다운(Recovery Mode).
 
-<table>
-  <tr>
-    <td align="center" width="50%"><strong>시작 대기 · 강제 시작</strong><br/><img src="docs/images/focus-ready.jpg" width="240" alt="강제 시작" /></td>
-    <td align="center" width="50%"><strong>5분 휴식</strong><br/><img src="docs/images/focus-break.jpg" width="240" alt="5분 휴식" /></td>
-  </tr>
-</table>
-
 ### 딴생각 파킹랏 (Later List)
 
 집중 중에 떠오른 할 일·걱정·아이디어는 적고 원래 작업으로 돌아옵니다. 파킹된 항목은 이탈 횟수·코치 신호에는 넣지 않습니다.
-
-<p align="center">
-  <img src="docs/images/parked-thoughts.jpg" alt="딴생각 목록" width="360" />
-</p>
 
 빠른 태그: 할 일, 걱정, 아이디어, 연락·메시지, 기타.
 
@@ -209,23 +171,12 @@ flowchart TB
 - 스마트폰 과의존, 시험기간, 번아웃 위험
 - **계획 강도 승수** (대략 0.5 ~ 1.5): 수면이 적거나 스트레스가 높으면 오늘 계획을 줄입니다.
 
-<p align="center">
-  <img src="docs/images/daily-context.jpg" alt="오늘 상태" width="280" />
-</p>
-
 ### 오늘 선택 · 주간 조정
 
 하단 탭은 **주간 / + (오늘 선택) / 프로필**입니다.
 
 - **오늘 선택**: 오늘 3개까지 고르고, AI로 새 블록을 쪼개 추가합니다.
 - **이번 주 조정**: 월~금 날짜를 고르면 끝난 리스트와 할 리스트가 나뉩니다. 탭하면 그 날 계획에 넣거나 뺍니다.
-
-<table>
-  <tr>
-    <td align="center" width="50%"><strong>오늘 선택</strong><br/><img src="docs/images/today-select.jpg" width="240" alt="오늘 선택" /></td>
-    <td align="center" width="50%"><strong>이번 주 조정</strong><br/><img src="docs/images/week-plan.jpg" width="240" alt="이번 주 조정" /></td>
-  </tr>
-</table>
 
 ### 플로우 트랙 · 도파민 보상
 
@@ -235,10 +186,6 @@ flowchart TB
 - 배지: 첫 블록 완료, 3일/7일 연속, 레벨 5
 - 플로우 트랙: 한 주는 월요일~일요일, 집중 완료 5회면 파란 칩. 티어는 Iron → Bronze → Silver → Gold → Platinum → Sapphire → Ruby → Diamond → Mythic
 
-<p align="center">
-  <img src="docs/images/flow-track.jpg" alt="플로우 트랙" width="280" />
-</p>
-
 ### 기록 / 통계
 
 집중 로그를 바탕으로 오늘을 요약합니다.
@@ -246,10 +193,6 @@ flowchart TB
 - 오늘 완료 블록 수
 - 시작 지연, 이탈·딴생각 횟수
 - AI가 생성한 한 줄 코칭 (예: 내일은 블록을 더 짧게)
-
-<p align="center">
-  <img src="docs/images/insights.jpg" alt="기록 통계" width="280" />
-</p>
 
 ### 외부 도구 연결 (MCP)
 
