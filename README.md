@@ -1,5 +1,9 @@
 # FocusFlow
 
+<p align="center">
+  <img src="docs/images/hero.png" alt="Focus-Flow AI" width="920" />
+</p>
+
 **신경다양성을 위한 AI 인지 보조 플랫폼** — 실행 기능을 넘어, 실제 행동을 만듭니다.
 
 > 관리 도구는 넘치지만, 실행 도구는 없습니다.  
